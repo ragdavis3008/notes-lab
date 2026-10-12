@@ -1,6 +1,7 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function NotesPage() {
+async function NotesList() {
   const supabase = await createClient();
   const { data: notes, error } = await supabase
     .from("notes")
@@ -12,8 +13,7 @@ export default async function NotesPage() {
   }
 
   return (
-    <main>
-      <h1>Notes</h1>
+    <>
       {notes.length === 0 && <p>No notes found.</p>}
       <ul>
         {notes.map((note) => (
@@ -23,6 +23,17 @@ export default async function NotesPage() {
           </li>
         ))}
       </ul>
+    </>
+  );
+}
+
+export default function NotesPage() {
+  return (
+    <main>
+      <h1>Notes</h1>
+      <Suspense fallback={<p>Loading notes...</p>}>
+        <NotesList />
+      </Suspense>
     </main>
   );
 }
