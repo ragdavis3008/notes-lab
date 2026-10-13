@@ -51,3 +51,16 @@ No authentication and no deployment in this project.
   If none exists, ask me instead of guessing.
 - Show clear empty-state messages instead of blank screens.
 - Keep the code simple and explain major decisions.
+
+## Table conventions
+- The full schema, ID types and app rules are in @docs/database-schema.md.
+  Read it before any database work.
+- Table and column names are snake_case.
+- Every table has `created_at` (timestamptz, default `now()`).
+- ID types differ per table: `collections.id` is a uuid (string in TypeScript);
+  `notes.id` and `tags.id` are int8 (number in TypeScript). Use the matching type.
+- Foreign keys are named `<singular_table>_id`, e.g. `collection_id`, `note_id`, `tag_id`.
+- `note_tags` is a join table with no `id` column. Its primary key is
+  (`note_id`, `tag_id`).
+- Tag names are trimmed and saved in lowercase.
+- Set `notes.updated_at` to the current time whenever a note is updated.
