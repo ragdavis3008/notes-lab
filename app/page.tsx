@@ -1,58 +1,73 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
+import { AppShell } from "@/components/app-shell";
+import { listNotes } from "@/lib/db";
+
+const PREVIEW_LENGTH = 120;
+
+function preview(content: string | null) {
+  if (!content) return "";
+  return content.length > PREVIEW_LENGTH
+    ? content.slice(0, PREVIEW_LENGTH).trimEnd() + "…"
+    : content;
+}
+
+async function NotesList() {
+  let notes;
+  try {
+    notes = await listNotes();
+  } catch (e) {
+    return (
+      <p className="text-red-600">
+        Error loading notes: {e instanceof Error ? e.message : "unknown error"}
+      </p>
+    );
+  }
+
+  if (notes.length === 0) {
+    return (
+      <p className="rounded-md border border-dashed border-foreground/20 p-8 text-center text-foreground/70">
+        No notes yet. Create your first note.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-3">
+      {notes.map((note) => (
+        <li key={note.id}>
+          <Link
+            href={`/notes/${note.id}`}
+            className="block rounded-md border border-foreground/10 p-4 hover:bg-foreground/5"
+          >
+            <h2 className="font-medium">{note.title}</h2>
+            {note.content && (
+              <p className="mt-1 whitespace-pre-line text-sm text-foreground/70">
+                {preview(note.content)}
+              </p>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
-            </div>
-            {!hasEnvVars ? (
-              <EnvVarWarning />
-            ) : (
-              <Suspense>
-                <AuthButton />
-              </Suspense>
-            )}
-          </div>
-        </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          <Hero />
-          <main className="flex-1 flex flex-col gap-6 px-4">
-            <h2 className="font-medium text-xl mb-4">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
-        </div>
-
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
+    <AppShell>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">All notes</h1>
+        <Link
+          href="/notes/new"
+          className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
+        >
+          New note
+        </Link>
       </div>
-    </main>
+      <Suspense fallback={<p>Loading notes...</p>}>
+        <NotesList />
+      </Suspense>
+    </AppShell>
   );
 }
