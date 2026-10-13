@@ -5,6 +5,7 @@ import { deleteNoteAction } from "@/app/actions";
 
 export function DeleteNoteButton({ id }: { id: number }) {
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   if (!confirming) {
@@ -20,12 +21,18 @@ export function DeleteNoteButton({ id }: { id: number }) {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-md border border-red-600/40 p-3 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-md border border-red-600/40 p-3 text-sm">
       <span>Delete this note? This cannot be undone.</span>
       <button
         type="button"
         disabled={pending}
-        onClick={() => startTransition(() => deleteNoteAction(id))}
+        onClick={() =>
+          startTransition(async () => {
+            setError(null);
+            const result = await deleteNoteAction(id);
+            if (result?.error) setError(result.error);
+          })
+        }
         className="rounded-md bg-red-600 px-3 py-1.5 text-white disabled:opacity-50"
       >
         {pending ? "Deleting..." : "Yes, delete"}
@@ -38,6 +45,11 @@ export function DeleteNoteButton({ id }: { id: number }) {
       >
         Cancel
       </button>
+      {error && (
+        <p role="alert" className="basis-full text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

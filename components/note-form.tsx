@@ -28,7 +28,7 @@ export function NoteForm({
         <input
           id="title"
           name="title"
-          defaultValue={initialTitle}
+          defaultValue={state?.values?.title ?? initialTitle}
           className="rounded-md border border-foreground/20 bg-background px-3 py-2"
         />
         {state?.error && (
@@ -45,7 +45,7 @@ export function NoteForm({
           id="content"
           name="content"
           rows={10}
-          defaultValue={initialContent}
+          defaultValue={state?.values?.content ?? initialContent}
           className="rounded-md border border-foreground/20 bg-background px-3 py-2"
         />
       </div>
