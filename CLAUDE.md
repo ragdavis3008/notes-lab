@@ -37,13 +37,6 @@ No authentication and no deployment in this project.
 - `components/`: shared UI components
 - `lib/`: Supabase clients, `db.ts`, types and helpers
 
-## Table conventions
-- Table and column names are snake_case.
-- Every table has `id` (uuid, default `gen_random_uuid()`) and `created_at`
-  (timestamptz, default `now()`).
-- Foreign keys are named `<singular_table>_id`, e.g. `collection_id`, `note_id`, `tag_id`.
-- `note_tags` is a join table: one row links one note to one tag.
-
 ## Workflow
 - One feature per branch, named `feature/<short-name>`. Never commit to `main` directly.
 - Commit messages describe the change (never "update" or "stuff").

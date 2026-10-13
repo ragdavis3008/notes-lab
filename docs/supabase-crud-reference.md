@@ -41,3 +41,34 @@ const response = await supabase
   .delete()
   .eq('id', 1)
 ```
+
+## Sort rows (order)
+Source: https://supabase.com/docs/reference/javascript/using-modifiers-order
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select('id, name')
+  .order('id', { ascending: false })
+```
+
+## Zero or one row (maybeSingle)
+Source: https://supabase.com/docs/reference/javascript/using-modifiers-maybesingle
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select()
+  .eq('name', 'Katniss')
+  .maybeSingle()
+```
+
+## Return changed rows (select after update or delete)
+Source: https://supabase.com/docs/reference/javascript/using-modifiers-select
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .upsert({ id: 1, name: 'Han Solo' })
+  .select()
+```

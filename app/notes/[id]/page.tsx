@@ -1,0 +1,69 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import { updateNoteAction } from "@/app/actions";
+import { AppShell } from "@/components/app-shell";
+import { DeleteNoteButton } from "@/components/delete-note-button";
+import { NoteForm } from "@/components/note-form";
+import { getNote } from "@/lib/db";
+
+function NoteNotFound() {
+  return (
+    <div>
+      <h1 className="mb-2 text-2xl font-semibold">Note not found</h1>
+      <p className="mb-4 text-foreground/70">
+        This note doesn&apos;t exist. It may have been deleted.
+      </p>
+      <Link href="/" className="text-sm underline">
+        Back to all notes
+      </Link>
+    </div>
+  );
+}
+
+async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
+  const { id: rawId } = await params;
+  if (!/^\d+$/.test(rawId)) return <NoteNotFound />;
+  const id = Number(rawId);
+  if (!Number.isSafeInteger(id)) return <NoteNotFound />;
+
+  let note;
+  try {
+    note = await getNote(id);
+  } catch (e) {
+    return (
+      <p className="text-red-600">
+        Error loading note: {e instanceof Error ? e.message : "unknown error"}
+      </p>
+    );
+  }
+  if (!note) return <NoteNotFound />;
+
+  return (
+    <>
+      <h1 className="mb-6 text-2xl font-semibold">Edit note</h1>
+      <NoteForm
+        action={updateNoteAction.bind(null, note.id)}
+        initialTitle={note.title}
+        initialContent={note.content ?? ""}
+        submitLabel="Save changes"
+      />
+      <div className="mt-8 border-t border-foreground/10 pt-6">
+        <DeleteNoteButton id={note.id} />
+      </div>
+    </>
+  );
+}
+
+export default function NotePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <AppShell>
+      <Suspense fallback={<p>Loading note...</p>}>
+        <NoteEditor params={params} />
+      </Suspense>
+    </AppShell>
+  );
+}
