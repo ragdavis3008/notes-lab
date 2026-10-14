@@ -2,9 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { updateNoteAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
+import { CollectionSelect } from "@/components/collection-select";
 import { DeleteNoteButton } from "@/components/delete-note-button";
 import { NoteForm } from "@/components/note-form";
-import { getNote } from "@/lib/db";
+import { getNote, listCollections } from "@/lib/db";
 
 function NoteNotFound() {
   return (
@@ -26,9 +27,9 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
   const id = Number(rawId);
   if (!Number.isSafeInteger(id)) return <NoteNotFound />;
 
-  let note;
+  let note, collections;
   try {
-    note = await getNote(id);
+    [note, collections] = await Promise.all([getNote(id), listCollections()]);
   } catch (e) {
     return (
       <p className="text-red-600">
@@ -41,6 +42,11 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <h1 className="mb-6 text-2xl font-semibold">Edit note</h1>
+      <CollectionSelect
+        noteId={note.id}
+        collections={collections}
+        currentCollectionId={note.collection_id}
+      />
       <NoteForm
         action={updateNoteAction.bind(null, note.id)}
         initialTitle={note.title}
@@ -60,7 +66,7 @@ export default function NotePage({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <AppShell>
+    <AppShell activeNote={params}>
       <Suspense fallback={<p>Loading note...</p>}>
         <NoteEditor params={params} />
       </Suspense>

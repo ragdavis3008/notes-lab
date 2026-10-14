@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Note } from "@/lib/types";
+import type { Collection, Note } from "@/lib/types";
 
 // Thrown when an update or delete finds no row with the given id.
 export class NoteNotFoundError extends Error {
@@ -61,6 +61,82 @@ export async function updateNote(
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new NoteNotFoundError();
+}
+
+// Thrown when a collection with this exact name already exists.
+export class DuplicateCollectionError extends Error {
+  constructor() {
+    super("A collection with this name already exists.");
+  }
+}
+
+export async function listCollections(): Promise<Collection[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("collections")
+    .select()
+    .order("name", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function createCollection(name: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("collections").insert({ name });
+
+  // 23505 = Postgres unique_violation (collections_name_key).
+  if (error?.code === "23505") throw new DuplicateCollectionError();
+  if (error) throw new Error(error.message);
+}
+
+export async function listNotesByCollection(
+  collectionId: string,
+): Promise<Note[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .select()
+    .eq("collection_id", collectionId)
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Notes whose collection_id is empty.
+export async function listUncollectedNotes(): Promise<Note[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .select()
+    .is("collection_id", null)
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Pass null to take the note out of its collection.
+export async function setNoteCollection(
+  noteId: number,
+  collectionId: string | null,
+): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .update({
+      collection_id: collectionId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", noteId)
     .select("id");
 
   if (error) throw new Error(error.message);
