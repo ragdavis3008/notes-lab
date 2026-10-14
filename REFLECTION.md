@@ -62,6 +62,18 @@ without updating the old one. The code was right; the rules disagreed. I reworde
 files so pinning is an explicit exception. This is the clearest example in the project
 of a new session catching drift in CLAUDE.md that the building session could not see.
 
+**Sixth run (PR 6, colour-coded tags):** no bugs, seven polish points. I fixed two in
+the colour picker: it closed before the save finished, and it had no Escape or
+click-outside handling. I rejected its main concern, that the Tailwind config change
+might not apply, because I had already proven it in the browser: the colours stayed
+gray until the config change and a restart.
+
+**Sixth run (PR 6, colour-coded tags):** no rule violations. It confirmed that the
+palette in `docs/database-schema.md` matches `lib/tag-colors.ts` exactly, that the
+column was documented before the code used it, and that new tags still get the gray
+default. It also named what a diff can't show (how files were edited, and whether
+the CHECK constraint really exists in the dashboard), which I had verified myself.
+
 ## New-session diff review
 After `/clear`, I asked a fresh Claude Code session to compare `git diff main...HEAD`
 with the rules in CLAUDE.md and docs/database-schema.md, without editing anything.
@@ -106,6 +118,14 @@ unpinning never reshuffles the rest of the list. Every list (All notes, collecti
 Uncollected, tag filters and search) sorts pinned notes first, then by `updated_at`.
 I chose this task because my RFP Tender Tracker needs the same thing: urgent tenders
 pinned to the top regardless of recent edits.
+
+**Colour-coded tags (Easy, PR 6).** I added a `color` column to `tags` with a CHECK
+constraint limiting it to eight palette names, and documented it first. The agent
+flagged before building that Tailwind didn't scan `lib/`, so the palette classes would
+never be generated; adding `lib/` to `tailwind.config.ts` fixed that, but the colours
+only appeared after restarting the dev server. The CHECK constraint also proved its
+worth when I typed "red " with a trailing space in the Table Editor and the database
+refused it. For my tender tracker, this is how I'd colour-code phases or priorities.
 
 ## Known limitations
 - Unknown top-level paths like `/banana` redirect to login because of the

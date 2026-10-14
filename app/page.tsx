@@ -14,6 +14,7 @@ import {
 import { NoteCard } from "@/components/note-card";
 import { PinIcon } from "@/components/pin-button";
 import { SearchBox } from "@/components/search-box";
+import { TagPill } from "@/components/tag-pill";
 import { filterHref, normalizeSearch, parseTagIds } from "@/lib/filter-url";
 import type { Note, Tag } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
@@ -189,11 +190,8 @@ function NotesList({
             {(tagsByNote.get(note.id) ?? []).length > 0 && (
               <ul className="mt-2 flex flex-wrap gap-1">
                 {tagsByNote.get(note.id)!.map((tag) => (
-                  <li
-                    key={tag.id}
-                    className="rounded-full bg-foreground/10 px-2 py-0.5 text-xs"
-                  >
-                    {tag.name}
+                  <li key={tag.id}>
+                    <TagPill name={tag.name} color={tag.color} />
                   </li>
                 ))}
               </ul>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { NewCollectionForm } from "@/components/new-collection-form";
+import { TagColorPicker } from "@/components/tag-color-picker";
+import { TagDot } from "@/components/tag-pill";
 import { listCollections, listNotes, listTags } from "@/lib/db";
 import { filterHref } from "@/lib/filter-url";
 import type { Note, Tag } from "@/lib/types";
@@ -172,15 +174,19 @@ function TagList({
             ? tagIds.filter((id) => id !== tag.id)
             : [...tagIds, tag.id];
           return (
-            <li key={tag.id}>
+            <li key={tag.id} className="flex flex-wrap items-center">
               <Link
                 href={filterHref(selected, next, search)}
                 aria-current={isSelected ? "true" : undefined}
-                className={`${linkBase} block truncate ${isSelected ? activeLink : ""}`}
+                className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${isSelected ? activeLink : ""}`}
               >
-                {isSelected ? "✓ " : ""}
-                {tag.name}
+                <TagDot color={tag.color} />
+                <span className="truncate">
+                  {isSelected ? "✓ " : ""}
+                  {tag.name}
+                </span>
               </Link>
+              <TagColorPicker tagId={tag.id} tagName={tag.name} color={tag.color} />
             </li>
           );
         })}

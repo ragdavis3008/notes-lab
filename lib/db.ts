@@ -1,10 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
+import type { TagColor } from "@/lib/tag-colors";
 import type { Collection, Note, NoteTag, Tag } from "@/lib/types";
 
 // Thrown when an update or delete finds no row with the given id.
 export class NoteNotFoundError extends Error {
   constructor() {
     super("This note no longer exists.");
+  }
+}
+
+// Thrown when the tag to change was deleted.
+export class TagNotFoundError extends Error {
+  constructor() {
+    super("This tag no longer exists. Reload the page.");
   }
 }
 
@@ -214,6 +222,19 @@ export async function listTags(): Promise<Tag[]> {
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+// The colour is one of the palette names; the database also enforces this (CHECK).
+export async function setTagColor(id: number, color: TagColor): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tags")
+    .update({ color })
+    .eq("id", id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new TagNotFoundError();
 }
 
 export async function listTagsForNote(noteId: number): Promise<Tag[]> {

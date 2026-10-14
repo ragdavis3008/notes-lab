@@ -6,6 +6,7 @@ import {
   removeTagFromNoteAction,
   type TagState,
 } from "@/app/actions";
+import { TAG_COLOR_CLASSES } from "@/lib/tag-colors";
 import type { Tag } from "@/lib/types";
 
 type Props = {
@@ -65,7 +66,7 @@ export function NoteTags({ noteId, tags }: Props) {
           {tags.map((tag) => (
             <li
               key={tag.id}
-              className="flex items-center gap-1 rounded-full bg-foreground/10 py-1 pl-3 pr-1 text-sm"
+              className={`flex items-center gap-1 rounded-full py-1 pl-3 pr-1 text-sm ${TAG_COLOR_CLASSES[tag.color].pill}`}
             >
               {tag.name}
               <button
@@ -73,7 +74,7 @@ export function NoteTags({ noteId, tags }: Props) {
                 disabled={pending}
                 aria-label={`Remove tag ${tag.name}`}
                 onClick={() => run(() => removeTagFromNoteAction(noteId, tag.id))}
-                className="rounded-full px-2 hover:bg-foreground/10 disabled:opacity-50"
+                className="rounded-full px-2 hover:bg-foreground/20 disabled:opacity-50"
               >
                 ×
               </button>
