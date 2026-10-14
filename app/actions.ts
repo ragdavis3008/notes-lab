@@ -3,12 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  addTagToNote,
   CollectionNotFoundError,
   createCollection,
   createNote,
   deleteNote,
   DuplicateCollectionError,
   NoteNotFoundError,
+  removeTagFromNote,
   setNoteCollection,
   updateNote,
 } from "@/lib/db";
@@ -119,6 +121,36 @@ export async function setNoteCollectionAction(
   } catch (e) {
     console.error("setNoteCollectionAction failed:", e);
     return { error: errorMessage(e, "Could not change the collection. Please try again.") };
+  }
+  revalidatePath("/", "layout");
+}
+
+export type TagState = { error: string } | undefined;
+
+export async function addTagToNoteAction(
+  noteId: number,
+  name: string,
+): Promise<TagState> {
+  if (name.trim() === "") return { error: "Tag name is required." };
+
+  try {
+    await addTagToNote(noteId, name);
+  } catch (e) {
+    console.error("addTagToNoteAction failed:", e);
+    return { error: errorMessage(e, "Could not add the tag. Please try again.") };
+  }
+  revalidatePath("/", "layout");
+}
+
+export async function removeTagFromNoteAction(
+  noteId: number,
+  tagId: number,
+): Promise<TagState> {
+  try {
+    await removeTagFromNote(noteId, tagId);
+  } catch (e) {
+    console.error("removeTagFromNoteAction failed:", e);
+    return { error: errorMessage(e, "Could not remove the tag. Please try again.") };
   }
   revalidatePath("/", "layout");
 }

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Collection, Note } from "@/lib/types";
+import type { Collection, Note, NoteTag, Tag } from "@/lib/types";
 
 // Thrown when an update or delete finds no row with the given id.
 export class NoteNotFoundError extends Error {
@@ -163,4 +163,159 @@ export async function deleteNote(id: number): Promise<void> {
 
   if (error) throw new Error(error.message);
   if (data.length === 0) throw new NoteNotFoundError();
+}
+
+// Tags are joined to notes in code (select/eq/in), not with embedded selects.
+
+export async function listTags(): Promise<Tag[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tags")
+    .select()
+    .order("name", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function listTagsForNote(noteId: number): Promise<Tag[]> {
+  const supabase = await createClient();
+  const { data: links, error } = await supabase
+    .from("note_tags")
+    .select()
+    .eq("note_id", noteId);
+
+  if (error) throw new Error(error.message);
+  const noteTags = links as NoteTag[];
+  if (noteTags.length === 0) return [];
+
+  const { data: tags, error: tagsError } = await supabase
+    .from("tags")
+    .select()
+    .in("id", noteTags.map((l) => l.tag_id))
+    .order("name", { ascending: true });
+
+  if (tagsError) throw new Error(tagsError.message);
+  return tags;
+}
+
+// Tags for many notes at once (note cards): two queries, not one per card.
+export async function listTagsByNoteIds(
+  noteIds: number[],
+): Promise<Map<number, Tag[]>> {
+  const result = new Map<number, Tag[]>();
+  if (noteIds.length === 0) return result;
+
+  const supabase = await createClient();
+  const { data: links, error } = await supabase
+    .from("note_tags")
+    .select()
+    .in("note_id", noteIds);
+
+  if (error) throw new Error(error.message);
+  const noteTags = links as NoteTag[];
+  if (noteTags.length === 0) return result;
+
+  const tags = await listTags(); // already sorted by name
+  const linked = new Map<number, Set<number>>(); // note id -> tag ids
+  for (const link of noteTags) {
+    const ids = linked.get(link.note_id) ?? new Set<number>();
+    ids.add(link.tag_id);
+    linked.set(link.note_id, ids);
+  }
+  for (const [noteId, ids] of linked) {
+    result.set(noteId, tags.filter((t) => ids.has(t.id)));
+  }
+  return result;
+}
+
+// Ids of notes that have ALL of the given tags. The `in` filter alone means
+// "any of them", so count the matching tags per note and keep full matches.
+export async function listNoteIdsWithAllTags(
+  tagIds: number[],
+): Promise<Set<number>> {
+  if (tagIds.length === 0) return new Set();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("note_tags")
+    .select()
+    .in("tag_id", tagIds);
+
+  if (error) throw new Error(error.message);
+  const wanted = new Set(tagIds);
+  const matches = new Map<number, Set<number>>();
+  for (const link of data as NoteTag[]) {
+    const found = matches.get(link.note_id) ?? new Set<number>();
+    found.add(link.tag_id);
+    matches.set(link.note_id, found);
+  }
+  const ids = new Set<number>();
+  for (const [noteId, found] of matches) {
+    if (found.size === wanted.size) ids.add(noteId);
+  }
+  return ids;
+}
+
+// Tag names are trimmed and lowercase. Reuses an existing tag with that name.
+// Adding a tag the note already has is not an error.
+export async function addTagToNote(
+  noteId: number,
+  rawName: string,
+): Promise<void> {
+  const name = rawName.trim().toLowerCase();
+  const supabase = await createClient();
+
+  async function findTag(): Promise<Tag | null> {
+    const { data, error } = await supabase
+      .from("tags")
+      .select()
+      .eq("name", name)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  let tag = await findTag();
+  if (!tag) {
+    const { data, error } = await supabase
+      .from("tags")
+      .insert({ name })
+      .select();
+    // 23505 = unique_violation: another request created it first, so reuse it.
+    if (error?.code === "23505") {
+      tag = await findTag();
+    } else if (error) {
+      throw new Error(error.message);
+    } else {
+      tag = data[0] ?? null;
+    }
+  }
+  if (!tag) throw new Error("Could not find or create the tag.");
+
+  const { error } = await supabase
+    .from("note_tags")
+    .insert({ note_id: noteId, tag_id: tag.id });
+
+  // 23505 = the note already has this tag; nothing to do.
+  if (error?.code === "23505") return;
+  // 23503 = foreign_key_violation (the note was deleted).
+  if (error?.code === "23503") throw new NoteNotFoundError();
+  if (error) throw new Error(error.message);
+}
+
+// Deletes only the note_tags row; the tag itself stays in the tags table.
+export async function removeTagFromNote(
+  noteId: number,
+  tagId: number,
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("note_tags")
+    .delete()
+    .eq("note_id", noteId)
+    .eq("tag_id", tagId);
+
+  if (error) throw new Error(error.message);
 }
