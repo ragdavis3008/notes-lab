@@ -40,6 +40,7 @@ Last checked against the dashboard: 2026-10-14
 | id | int8 | identity (auto-number) | yes | primary key |
 | created_at | timestamptz | now() | yes | |
 | name | text | — | yes | unique, case-insensitive (unique index on lower(name)) |
+| color | text | 'gray' | yes | one of: gray, red, orange, yellow, green, blue, purple, pink (CHECK constraint) |
 
 ### note_tags (join table)
 | Column | Type | Default | Required | Notes |
@@ -64,6 +65,8 @@ Primary key: (note_id, tag_id). There is no separate id column.
   the selected tags, not notes that have any one of them.
 - Every notes list shows pinned notes first, then the rest, each group ordered by
   updated_at, newest first. Pinning or unpinning a note does not change updated_at.
+- Tag colours come from the fixed palette above. New tags start as gray. The app maps
+  each colour name to its own Tailwind classes; the database stores only the name.
 
 ## Access
 - RLS is enabled on all four tables.
