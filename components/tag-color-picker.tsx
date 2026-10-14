@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useId, useOptimistic, useRef, useState, useTransition } from "react";
 import { setTagColorAction } from "@/app/actions";
 import { TAG_COLOR_CLASSES, TAG_COLORS, type TagColor } from "@/lib/tag-colors";
 
@@ -10,6 +10,9 @@ type Props = {
   color: TagColor;
 };
 
+// Fired when a picker opens, so any other open picker closes (one open at a time).
+const OPENED_EVENT = "tag-color-picker:opened";
+
 // Meant to sit in a flex-wrap row: the swatches and the error take a full line below.
 export function TagColorPicker({ tagId, tagName, color }: Props) {
   // Changes at once; goes back to the real value if the save fails.
@@ -17,16 +20,66 @@ export function TagColorPicker({ tagId, tagName, color }: Props) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const pickerId = useId();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const groupRef = useRef<HTMLDivElement>(null);
+
+  function close() {
+    setOpen(false);
+    setError(undefined);
+  }
+
+  function toggle() {
+    if (open) {
+      close();
+      return;
+    }
+    window.dispatchEvent(new CustomEvent(OPENED_EVENT, { detail: pickerId }));
+    setOpen(true);
+  }
+
+  // While open: close on Escape, on a click outside, or when another picker opens.
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        setError(undefined);
+      }
+    }
+    function onPointerDown(e: PointerEvent) {
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target) || groupRef.current?.contains(target)) return;
+      setOpen(false);
+      setError(undefined);
+    }
+    function onOtherOpened(e: Event) {
+      if ((e as CustomEvent<string>).detail === pickerId) return;
+      setOpen(false);
+      setError(undefined);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener(OPENED_EVENT, onOtherOpened);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener(OPENED_EVENT, onOtherOpened);
+    };
+  }, [open, pickerId]);
 
   function choose(next: TagColor) {
-    setOpen(false);
-    if (next === shownColor) return;
     setError(undefined);
+    if (next === shownColor) {
+      setOpen(false);
+      return;
+    }
     startTransition(async () => {
       setShownColor(next);
       try {
         const result = await setTagColorAction(tagId, next);
         if (result?.error) setError(result.error);
+        else setOpen(false);
       } catch (e) {
         console.error("Tag colour change failed:", e);
         setError("Could not change the colour. Please try again.");
@@ -37,8 +90,9 @@ export function TagColorPicker({ tagId, tagName, color }: Props) {
   return (
     <>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         disabled={pending}
         aria-expanded={open}
         aria-label={`Change colour of tag ${tagName}, currently ${shownColor}`}
@@ -52,6 +106,7 @@ export function TagColorPicker({ tagId, tagName, color }: Props) {
       </button>
       {open && (
         <div
+          ref={groupRef}
           role="group"
           aria-label={`Colours for tag ${tagName}`}
           className="flex w-full flex-wrap gap-1.5 px-3 pb-1"
