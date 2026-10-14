@@ -55,6 +55,13 @@ I fixed three: the pin error could cover the card text, only part of the card wa
 clickable, and the pin action didn't validate its input. I left the repeated ordering
 code as it was and added a comment where the tag filter relies on the list order.
 
+**Fifth run (PR 5, pinned notes):** the fresh session found a real contradiction in my
+own rules. CLAUDE.md and the schema doc said "set updated_at whenever a note is updated",
+but I had decided pinning should not change it, and only wrote that down as a new rule
+without updating the old one. The code was right; the rules disagreed. I reworded both
+files so pinning is an explicit exception. This is the clearest example in the project
+of a new session catching drift in CLAUDE.md that the building session could not see.
+
 ## New-session diff review
 After `/clear`, I asked a fresh Claude Code session to compare `git diff main...HEAD`
 with the rules in CLAUDE.md and docs/database-schema.md, without editing anything.
