@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { NewCollectionForm } from "@/components/new-collection-form";
-import { listCollections, listNotes } from "@/lib/db";
-import type { Note } from "@/lib/types";
+import { listCollections, listNotes, listTags } from "@/lib/db";
+import { filterHref } from "@/lib/filter-url";
+import type { Note, Tag } from "@/lib/types";
 
 export type SidebarSelection = "all" | "uncollected" | (string & {});
 
 // Promises, because reading searchParams/params has to happen behind Suspense.
 type Props = {
   selected: Promise<SidebarSelection>;
+  // Ids of the tags chosen in ?tag=.
+  selectedTags: Promise<number[]>;
   // Route params of the note page, so the group holding that note opens.
   activeNote?: Promise<{ id: string }>;
 };
@@ -76,9 +79,11 @@ function Group({
 
 async function Groups({
   selected,
+  tagIds,
   activeNote,
 }: {
   selected: SidebarSelection;
+  tagIds: number[];
   activeNote?: Promise<{ id: string }>;
 }) {
   let collections, notes;
@@ -110,7 +115,7 @@ async function Groups({
           <Group
             key={c.id}
             label={c.name}
-            href={`/?collection=${c.id}`}
+            href={filterHref(c.id, tagIds)}
             selected={selected === c.id}
             open={selected === c.id || holdsActiveNote(inCollection)}
             notes={inCollection}
@@ -120,7 +125,7 @@ async function Groups({
       })}
       <Group
         label="Uncollected"
-        href="/?collection=uncollected"
+        href={filterHref("uncollected", tagIds)}
         selected={selected === "uncollected"}
         open={selected === "uncollected" || holdsActiveNote(uncollected)}
         notes={uncollected}
@@ -130,12 +135,83 @@ async function Groups({
   );
 }
 
-async function Nav({ selected: selectedPromise, activeNote }: Props) {
-  const selected = await selectedPromise;
+// Clicking a tag adds it to (or removes it from) the filter, keeping the collection.
+function TagList({
+  selected,
+  tagIds,
+  tags,
+  loadError,
+}: {
+  selected: SidebarSelection;
+  tagIds: number[];
+  tags: Tag[];
+  loadError?: string;
+}) {
+  if (loadError !== undefined) {
+    return <p className="px-3 text-red-600">Error loading tags: {loadError}</p>;
+  }
+
+  if (tags.length === 0) {
+    return <p className="px-3 py-1 text-foreground/60">No tags yet</p>;
+  }
+  return (
+    <>
+      <p className="px-3 py-1 text-xs text-foreground/60">
+        Select several to see notes with all of them.
+      </p>
+      <ul className="flex flex-col">
+        {tags.map((tag) => {
+          const isSelected = tagIds.includes(tag.id);
+          const next = isSelected
+            ? tagIds.filter((id) => id !== tag.id)
+            : [...tagIds, tag.id];
+          return (
+            <li key={tag.id}>
+              <Link
+                href={filterHref(selected, next)}
+                aria-current={isSelected ? "true" : undefined}
+                className={`${linkBase} block truncate ${isSelected ? activeLink : ""}`}
+              >
+                {isSelected ? "✓ " : ""}
+                {tag.name}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {tagIds.length > 0 && (
+        <Link href={filterHref(selected, [])} className={`${linkBase} underline`}>
+          Clear tag filter
+        </Link>
+      )}
+    </>
+  );
+}
+
+async function Nav({
+  selected: selectedPromise,
+  selectedTags,
+  activeNote,
+}: Props) {
+  const [selected, urlTagIds] = await Promise.all([selectedPromise, selectedTags]);
+
+  // Ignore ids from the URL that match no existing tag, like app/page.tsx does.
+  let tags: Tag[] = [];
+  let loadError: string | undefined;
+  try {
+    tags = await listTags();
+  } catch (e) {
+    console.error("Sidebar tags failed:", e);
+    loadError = e instanceof Error ? e.message : "unknown error";
+  }
+  const tagIds = loadError
+    ? []
+    : urlTagIds.filter((id) => tags.some((t) => t.id === id));
+
   return (
     <nav className="flex flex-col gap-1 text-sm">
       <Link
-        href="/"
+        href={filterHref("all", tagIds)}
         className={`${linkBase} ${selected === "all" ? activeLink : ""}`}
       >
         All notes
@@ -143,8 +219,17 @@ async function Nav({ selected: selectedPromise, activeNote }: Props) {
       <p className="mt-3 px-3 text-xs font-medium uppercase text-foreground/50">
         Collections
       </p>
-      <Groups selected={selected} activeNote={activeNote} />
+      <Groups selected={selected} tagIds={tagIds} activeNote={activeNote} />
       <NewCollectionForm />
+      <p className="mt-3 px-3 text-xs font-medium uppercase text-foreground/50">
+        Tags
+      </p>
+      <TagList
+        selected={selected}
+        tagIds={tagIds}
+        tags={tags}
+        loadError={loadError}
+      />
     </nav>
   );
 }

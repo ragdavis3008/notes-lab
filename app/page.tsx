@@ -4,18 +4,23 @@ import { AppShell } from "@/components/app-shell";
 import type { SidebarSelection } from "@/components/sidebar";
 import {
   listCollections,
+  listNoteIdsWithAllTags,
   listNotes,
   listNotesByCollection,
+  listTags,
+  listTagsByNoteIds,
   listUncollectedNotes,
 } from "@/lib/db";
-import type { Note } from "@/lib/types";
+import { filterHref, parseTagIds } from "@/lib/filter-url";
+import type { Note, Tag } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 
 const PREVIEW_LENGTH = 120;
 
-type SearchParams = Promise<{ collection?: string | string[] }>;
+type Params = { collection?: string | string[]; tag?: string | string[] };
+type SearchParams = Promise<Params>;
 
-function readCollection(params: { collection?: string | string[] }) {
+function readCollection(params: Params) {
   const raw = params.collection;
   return Array.isArray(raw) ? raw[0] : raw;
 }
@@ -37,12 +42,21 @@ function BackToAll() {
 
 // Loads the notes (and the heading) for the view chosen by ?collection=.
 async function Content({ searchParams }: { searchParams: SearchParams }) {
-  const collectionParam = readCollection(await searchParams);
+  const params = await searchParams;
+  const collectionParam = readCollection(params);
 
   let title = "All notes";
   let emptyMessage = "No notes yet. Create your first note.";
   let notes;
+  let selectedTags: Tag[] = [];
+  let tagsByNote = new Map<number, Tag[]>();
   try {
+    // Ignore tag ids that match no tag (for example from an edited URL).
+    const wantedTagIds = parseTagIds(params.tag);
+    if (wantedTagIds.length > 0) {
+      selectedTags = (await listTags()).filter((t) => wantedTagIds.includes(t.id));
+    }
+
     if (collectionParam === undefined || collectionParam === "") {
       notes = await listNotes();
     } else if (collectionParam === "uncollected") {
@@ -71,6 +85,14 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       emptyMessage = "No notes in this collection yet.";
       notes = await listNotesByCollection(collection.id);
     }
+
+    // The tag filter narrows the collection's notes: only notes with ALL tags.
+    if (selectedTags.length > 0) {
+      const withAllTags = await listNoteIdsWithAllTags(selectedTags.map((t) => t.id));
+      notes = notes.filter((n) => withAllTags.has(n.id));
+      emptyMessage = "No notes match the selected tags.";
+    }
+    tagsByNote = await listTagsByNoteIds(notes.map((n) => n.id));
   } catch (e) {
     return (
       <p className="text-red-600">
@@ -90,16 +112,33 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
           New note
         </Link>
       </div>
-      <NotesList notes={notes} emptyMessage={emptyMessage} />
+      {selectedTags.length > 0 && (
+        <p className="mb-4 text-sm text-foreground/70">
+          Tags: {selectedTags.map((t) => t.name).join(", ")}{" "}
+          <Link
+            href={filterHref(collectionParam || "all", [])}
+            className="underline"
+          >
+            Clear tag filter
+          </Link>
+        </p>
+      )}
+      <NotesList
+        notes={notes}
+        tagsByNote={tagsByNote}
+        emptyMessage={emptyMessage}
+      />
     </>
   );
 }
 
 function NotesList({
   notes,
+  tagsByNote,
   emptyMessage,
 }: {
   notes: Note[];
+  tagsByNote: Map<number, Tag[]>;
   emptyMessage: string;
 }) {
   if (notes.length === 0) {
@@ -124,6 +163,18 @@ function NotesList({
                 {preview(note.content)}
               </p>
             )}
+            {(tagsByNote.get(note.id) ?? []).length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-1">
+                {tagsByNote.get(note.id)!.map((tag) => (
+                  <li
+                    key={tag.id}
+                    className="rounded-full bg-foreground/10 px-2 py-0.5 text-xs"
+                  >
+                    {tag.name}
+                  </li>
+                ))}
+              </ul>
+            )}
           </Link>
         </li>
       ))}
@@ -136,8 +187,11 @@ export default function Home({ searchParams }: { searchParams: SearchParams }) {
   const selected: Promise<SidebarSelection> = searchParams.then(
     (p) => readCollection(p) || "all",
   );
+  const selectedTags: Promise<number[]> = searchParams.then((p) =>
+    parseTagIds(p.tag),
+  );
   return (
-    <AppShell selected={selected}>
+    <AppShell selected={selected} selectedTags={selectedTags}>
       <Suspense fallback={<p>Loading notes...</p>}>
         <Content searchParams={searchParams} />
       </Suspense>

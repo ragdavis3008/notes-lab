@@ -5,7 +5,8 @@ import { AppShell } from "@/components/app-shell";
 import { CollectionSelect } from "@/components/collection-select";
 import { DeleteNoteButton } from "@/components/delete-note-button";
 import { NoteForm } from "@/components/note-form";
-import { getNote, listCollections } from "@/lib/db";
+import { NoteTags } from "@/components/note-tags";
+import { getNote, listCollections, listTagsForNote } from "@/lib/db";
 
 function NoteNotFound() {
   return (
@@ -27,9 +28,13 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
   const id = Number(rawId);
   if (!Number.isSafeInteger(id)) return <NoteNotFound />;
 
-  let note, collections;
+  let note, collections, tags;
   try {
-    [note, collections] = await Promise.all([getNote(id), listCollections()]);
+    [note, collections, tags] = await Promise.all([
+      getNote(id),
+      listCollections(),
+      listTagsForNote(id),
+    ]);
   } catch (e) {
     return (
       <p className="text-red-600">
@@ -47,6 +52,7 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
         collections={collections}
         currentCollectionId={note.collection_id}
       />
+      <NoteTags noteId={note.id} tags={tags} />
       <NoteForm
         action={updateNoteAction.bind(null, note.id)}
         initialTitle={note.title}

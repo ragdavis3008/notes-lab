@@ -92,3 +92,31 @@ const { data, error } = await supabase
   .select()
   .is('name', null)
 ```
+
+## Read related rows through a join table
+Source: https://supabase.com/docs/reference/javascript/select
+(Example tab: "Query referenced tables through a join table")
+
+Note: this project does not use embedded selects. lib/db.ts reads note_tags
+with select/eq/in and joins notes and tags in code instead.
+
+```ts
+const { data, error } = await supabase
+  .from('users')
+  .select(`
+    name,
+    teams (
+      name
+    )
+  `)
+```
+
+## Filter: value is in a list (in)
+Source: https://supabase.com/docs/reference/javascript/using-filters-in
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select()
+  .in('name', ['Leia', 'Han'])
+```

@@ -29,6 +29,15 @@ sets it; I only fixed the misleading comment. I rejected removing the "redundant
 without a reload. Fetching less data in the sidebar and moving the link out of the
 expandable group were left as known trade-offs.
 
+**Third run:** `/code-review` on `feature/tags` (PR 3) gave 8 findings. I fixed two
+real bugs: the sidebar treated tag ids from the URL that no longer exist as selected,
+and "Saved" could appear even when adding or removing a tag had failed. I also fixed
+my own docs: the join-table example was missing its code fence, and I added a note
+explaining that lib/db.ts joins notes and tags in code instead of using that pattern.
+I left the rest as trade-offs: the 1000-row limit on `.in()` queries, extra database
+round trips, and filtering in memory are fine at this app's size, and the exact-name
+tag lookup is safe because the app always saves tag names in lowercase.
+
 ## New-session diff review
 After `/clear`, I asked a fresh Claude Code session to compare `git diff main...HEAD`
 with the rules in CLAUDE.md and docs/database-schema.md, without editing anything.
@@ -53,6 +62,13 @@ after I added the case-insensitive unique rule to `collections.name`. I left two
 minor notes as they are: checking Postgres error codes (not a Supabase method), and
 chaining two `.order()` calls (the same cited method used twice).
 
+**Third run (PR 3, tags):** the fresh session found no rule violations. It confirmed the
+join table is only accessed through `lib/db.ts`, that ids are typed as numbers (int8),
+that tag names are trimmed and lowercased, and that the filter keeps only notes with
+ALL selected tags. Its three minor observations were all decisions I had already made
+and recorded after the code review (Postgres error codes, the exact-name tag lookup,
+and the unused join-table doc example), so the two reviews agreed.
+
 ## Optional task(s)
 
 ## Known limitations
@@ -60,5 +76,9 @@ chaining two `.order()` calls (the same cited method used twice).
   starter's proxy. Left as is until authentication is added.
 - RLS policies allow full access for anon and authenticated users (no login yet).
 - In the sidebar, each collection's name is a link inside its expandable group, so one click both opens the group and navigates. Not ideal for accessibility.
+- Tag queries use `.in()` and Supabase's default 1000-row limit, so very large note
+  sets could lose tag labels or filter matches.
+- Opening a note and coming back resets the tag filter, because note pages have
+  their own address without filters.
 
 ## What I would keep or change next time
