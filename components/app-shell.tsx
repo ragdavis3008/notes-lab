@@ -4,11 +4,13 @@ export function AppShell({
   children,
   selected = Promise.resolve("all"),
   selectedTags = Promise.resolve([]),
+  searchText = Promise.resolve(""),
   activeNote,
 }: {
   children: React.ReactNode;
   selected?: Promise<SidebarSelection>;
   selectedTags?: Promise<number[]>;
+  searchText?: Promise<string>;
   activeNote?: Promise<{ id: string }>;
 }) {
   return (
@@ -16,6 +18,7 @@ export function AppShell({
       <Sidebar
         selected={selected}
         selectedTags={selectedTags}
+        searchText={searchText}
         activeNote={activeNote}
       />
       <main className="min-w-0 flex-1 p-6">

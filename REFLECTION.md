@@ -38,6 +38,16 @@ I left the rest as trade-offs: the 1000-row limit on `.in()` queries, extra data
 round trips, and filtering in memory are fine at this app's size, and the exact-name
 tag lookup is safe because the app always saves tag names in lowercase.
 
+**Fourth run:** `/code-review` on `feature/search` (PR 4). Its most important finding
+was that the search escaping had no cited reference, which breaks my CLAUDE.md rule.
+The code was correct (my browser tests with `,`, `(`, `"`, `%` and `_` all worked),
+but I added the PostgREST "Reserved characters" documentation to `docs/` so the
+quoting and backslash escaping are cited. I also fixed two real search box bugs: a
+slow, older update could overwrite what the user was typing, and the box and the
+server trimmed the search text differently. I corrected a comment that wrongly said
+`*` is always matched literally. I left the repeated query code, the in-memory tag
+filter, and links that drop text typed in the last 300 ms as they are.
+
 ## New-session diff review
 After `/clear`, I asked a fresh Claude Code session to compare `git diff main...HEAD`
 with the rules in CLAUDE.md and docs/database-schema.md, without editing anything.
@@ -69,6 +79,11 @@ ALL selected tags. Its three minor observations were all decisions I had already
 and recorded after the code review (Postgres error codes, the exact-name tag lookup,
 and the unused join-table doc example), so the two reviews agreed.
 
+**Fourth run (PR 4, search):** the fresh session found no rule violations. This time the
+search escaping was covered, because I had added the PostgREST "Reserved characters"
+reference to `docs/` after the code review. That review flagged the missing citation;
+the new-session review confirmed the fix closed the gap.
+
 ## Optional task(s)
 
 ## Known limitations
@@ -80,5 +95,8 @@ and the unused join-table doc example), so the two reviews agreed.
   sets could lose tag labels or filter matches.
 - Opening a note and coming back resets the tag filter, because note pages have
   their own address without filters.
+
+  - A typed `*` in the search matches any one character, because PostgREST treats `*` as
+  a wildcard in like/ilike and it cannot be escaped.
 
 ## What I would keep or change next time

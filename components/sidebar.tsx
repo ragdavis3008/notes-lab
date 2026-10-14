@@ -12,6 +12,8 @@ type Props = {
   selected: Promise<SidebarSelection>;
   // Ids of the tags chosen in ?tag=.
   selectedTags: Promise<number[]>;
+  // Search text from ?q=, kept in every link so the search survives navigation.
+  searchText?: Promise<string>;
   // Route params of the note page, so the group holding that note opens.
   activeNote?: Promise<{ id: string }>;
 };
@@ -80,10 +82,12 @@ function Group({
 async function Groups({
   selected,
   tagIds,
+  search,
   activeNote,
 }: {
   selected: SidebarSelection;
   tagIds: number[];
+  search: string;
   activeNote?: Promise<{ id: string }>;
 }) {
   let collections, notes;
@@ -115,7 +119,7 @@ async function Groups({
           <Group
             key={c.id}
             label={c.name}
-            href={filterHref(c.id, tagIds)}
+            href={filterHref(c.id, tagIds, search)}
             selected={selected === c.id}
             open={selected === c.id || holdsActiveNote(inCollection)}
             notes={inCollection}
@@ -125,7 +129,7 @@ async function Groups({
       })}
       <Group
         label="Uncollected"
-        href={filterHref("uncollected", tagIds)}
+        href={filterHref("uncollected", tagIds, search)}
         selected={selected === "uncollected"}
         open={selected === "uncollected" || holdsActiveNote(uncollected)}
         notes={uncollected}
@@ -139,11 +143,13 @@ async function Groups({
 function TagList({
   selected,
   tagIds,
+  search,
   tags,
   loadError,
 }: {
   selected: SidebarSelection;
   tagIds: number[];
+  search: string;
   tags: Tag[];
   loadError?: string;
 }) {
@@ -168,7 +174,7 @@ function TagList({
           return (
             <li key={tag.id}>
               <Link
-                href={filterHref(selected, next)}
+                href={filterHref(selected, next, search)}
                 aria-current={isSelected ? "true" : undefined}
                 className={`${linkBase} block truncate ${isSelected ? activeLink : ""}`}
               >
@@ -180,7 +186,10 @@ function TagList({
         })}
       </ul>
       {tagIds.length > 0 && (
-        <Link href={filterHref(selected, [])} className={`${linkBase} underline`}>
+        <Link
+          href={filterHref(selected, [], search)}
+          className={`${linkBase} underline`}
+        >
           Clear tag filter
         </Link>
       )}
@@ -191,9 +200,14 @@ function TagList({
 async function Nav({
   selected: selectedPromise,
   selectedTags,
+  searchText = Promise.resolve(""),
   activeNote,
 }: Props) {
-  const [selected, urlTagIds] = await Promise.all([selectedPromise, selectedTags]);
+  const [selected, urlTagIds, search] = await Promise.all([
+    selectedPromise,
+    selectedTags,
+    searchText,
+  ]);
 
   // Ignore ids from the URL that match no existing tag, like app/page.tsx does.
   let tags: Tag[] = [];
@@ -211,7 +225,7 @@ async function Nav({
   return (
     <nav className="flex flex-col gap-1 text-sm">
       <Link
-        href={filterHref("all", tagIds)}
+        href={filterHref("all", tagIds, search)}
         className={`${linkBase} ${selected === "all" ? activeLink : ""}`}
       >
         All notes
@@ -219,7 +233,12 @@ async function Nav({
       <p className="mt-3 px-3 text-xs font-medium uppercase text-foreground/50">
         Collections
       </p>
-      <Groups selected={selected} tagIds={tagIds} activeNote={activeNote} />
+      <Groups
+        selected={selected}
+        tagIds={tagIds}
+        search={search}
+        activeNote={activeNote}
+      />
       <NewCollectionForm />
       <p className="mt-3 px-3 text-xs font-medium uppercase text-foreground/50">
         Tags
@@ -227,6 +246,7 @@ async function Nav({
       <TagList
         selected={selected}
         tagIds={tagIds}
+        search={search}
         tags={tags}
         loadError={loadError}
       />
