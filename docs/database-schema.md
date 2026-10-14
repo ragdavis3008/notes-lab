@@ -3,7 +3,7 @@
 Source of truth for the Supabase tables. Tables are created and changed in the
 Supabase dashboard only. Do not create, alter or drop tables from code.
 
-Last checked against the dashboard: 2026-10-13
+Last checked against the dashboard: 2026-10-14
 
 ## Relationships in plain English
 - A note can belong to one collection. A collection can contain many notes.
@@ -21,7 +21,7 @@ Last checked against the dashboard: 2026-10-13
 | --- | --- | --- | --- | --- |
 | id | uuid | gen_random_uuid() | yes | primary key |
 | created_at | timestamptz | now() | yes | |
-| name | text | — | yes | |
+| name | text | — | yes | unique, case-insensitive (unique index on lower(name); exact-match constraint collections_name_key also exists) |
 
 ### notes
 | Column | Type | Default | Required | Notes |

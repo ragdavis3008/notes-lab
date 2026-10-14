@@ -7,3 +7,10 @@ export type Note = {
   updated_at: string | null;
   collection_id: string | null; // uuid
 };
+
+// Matches the `collections` table in docs/database-schema.md.
+export type Collection = {
+  id: string; // uuid
+  created_at: string;
+  name: string;
+};

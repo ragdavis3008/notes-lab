@@ -19,6 +19,16 @@ like `/notesfoo` in the proxy. These were fixed too. One finding was a false
 alarm: it flagged the removed "Table conventions" section in CLAUDE.md, but that
 was a deliberate removal of an outdated duplicate.
 
+**Second run:** `/code-review` on `feature/collections` (PR 2) gave 10 findings. I fixed
+four real bugs: the sidebar showed stale note titles after edits, uppercase collection ids
+showed "not found", the new collection form brought back an old error when reopened, and
+choosing a deleted collection showed a raw database error. I kept one behaviour it flagged
+(moving a note updates `updated_at`), because my CLAUDE.md rule says every note update
+sets it; I only fixed the misleading comment. I rejected removing the "redundant"
+`router.refresh()`, because that refresh is what fixed new collections not appearing
+without a reload. Fetching less data in the sidebar and moving the link out of the
+expandable group were left as known trade-offs.
+
 ## New-session diff review
 After `/clear`, I asked a fresh Claude Code session to compare `git diff main...HEAD`
 with the rules in CLAUDE.md and docs/database-schema.md, without editing anything.
@@ -34,11 +44,21 @@ session couldn't see the earlier conversation: the first session did ask in its 
 and I approved the change. A new session is good at checking the code against the
 rules, but it only knows what is in the repo, not what was agreed in chat.
 
+**Second run (PR 2, collections):** the fresh session found no rule violations. It
+confirmed that all database access stays in `lib/db.ts`, that the uuid and int8 id
+types match the schema, and that only cited Supabase methods were used (the `eq` and
+`is` references I added before building paid off). I acted on one small finding: the
+"Last checked against the dashboard" date in `docs/database-schema.md` was not updated
+after I added the case-insensitive unique rule to `collections.name`. I left two
+minor notes as they are: checking Postgres error codes (not a Supabase method), and
+chaining two `.order()` calls (the same cited method used twice).
+
 ## Optional task(s)
 
 ## Known limitations
 - Unknown top-level paths like `/banana` redirect to login because of the
   starter's proxy. Left as is until authentication is added.
 - RLS policies allow full access for anon and authenticated users (no login yet).
+- In the sidebar, each collection's name is a link inside its expandable group, so one click both opens the group and navigates. Not ideal for accessibility.
 
 ## What I would keep or change next time

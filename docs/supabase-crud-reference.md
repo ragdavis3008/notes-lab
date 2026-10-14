@@ -72,3 +72,23 @@ const { data, error } = await supabase
   .upsert({ id: 1, name: 'Han Solo' })
   .select()
 ```
+
+## Filter: equal to a value (eq)
+Source: https://supabase.com/docs/reference/javascript/using-filters-eq
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select()
+  .eq('name', 'Leia')
+```
+
+## Filter: is null (is)
+Source: https://supabase.com/docs/reference/javascript/using-filters-is
+
+```ts
+const { data, error } = await supabase
+  .from('countries')
+  .select()
+  .is('name', null)
+```
