@@ -121,36 +121,32 @@ const { data, error } = await supabase
   .in('name', ['Leia', 'Han'])
 ```
 
-## Filter: case-insensitive pattern match (ilike)
-Source: https://supabase.com/docs/reference/javascript/using-filters-ilike
+## Full-text search filter (textSearch)
+Source: https://supabase.com/docs/reference/javascript/using-filters-textsearch
 
 ```ts
-const { data, error } = await supabase
-  .from('characters')
-  .select()
-  .ilike('name', '%lu%')
+const result = await supabase
+  .from("texts")
+  .select("content")
+  .textSearch("content", `'eggs' & 'ham'`, {
+    config: "english",
+  });
+```
+How this project uses it: lib/db.ts keeps only the letters and digits from the search
+text, turns each word into `word:*` and joins them with ` & `, then calls
+`.textSearch('search_vector', 'meet:* & notes:*', { config: 'english' })`. Notes are
+read with an explicit column list, so search_vector is never sent to the app.
+
+The english config must match the config used for search_vector and its index. With
+it, Postgres stems words (edit finds edited) and drops stop words (the, and, of), so a
+search made only of stop words returns no notes.
+
+## Full-text search: prefix matching while typing
+Source: https://supabase.com/docs/guides/database/full-text-search (section "Implementing partial search")
+
+```sql
+select title from books where to_tsvector(title) @@ to_tsquery('Lit:*');
 ```
 
-## Filter: match any of several conditions (or)
-Source: https://supabase.com/docs/reference/javascript/using-filters-or
-
-```ts
-const { data, error } = await supabase
-  .from('characters')
-  .select('name')
-  .or('id.eq.2,name.eq.Han')
-```
-
-## Reserved characters in filter values (quoting and escaping)
-Source: https://docs.postgrest.org/en/stable/references/api/url_grammar.html#reserved-characters
-(PostgREST is the API layer behind supabase-js filters such as `.or()`.)
-
-```text
-curl "http://localhost:3000/marks?name=in.(%22Quote:%5C%22%22,%22Backslash:%5C%5C%22)"
-```
-
-How this project uses it: lib/db.ts wraps the search pattern in double quotes inside
-`.or()`, and escapes `"` as `\"` and `\` as `\\`, so commas, brackets and quotes in the
-search text cannot change the filter. `%` and `_` are escaped separately so `ilike`
-treats them literally. A typed `*` is replaced with `_`, because PostgREST treats `*`
-as a wildcard in like/ilike.
+Note: `.textSearch()` without a `type` option uses `to_tsquery`, so the same `word:*`
+prefix syntax works there. This project does not use the RPC approach from the guide.
