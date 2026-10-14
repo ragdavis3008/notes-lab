@@ -120,3 +120,23 @@ const { data, error } = await supabase
   .select()
   .in('name', ['Leia', 'Han'])
 ```
+
+## Filter: case-insensitive pattern match (ilike)
+Source: https://supabase.com/docs/reference/javascript/using-filters-ilike
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select()
+  .ilike('name', '%lu%')
+```
+
+## Filter: match any of several conditions (or)
+Source: https://supabase.com/docs/reference/javascript/using-filters-or
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select('name')
+  .or('id.eq.2,name.eq.Han')
+```
