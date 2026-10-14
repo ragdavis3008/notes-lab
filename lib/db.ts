@@ -16,29 +16,37 @@ export class TagNotFoundError extends Error {
   }
 }
 
-// Builds the `.or()` filter that matches `search` in the title or the content,
-// ignoring capitals. The text is escaped twice. Everything is searched for
-// literally except *:
-// 1. LIKE layer: \ % _ are escaped. PostgREST also treats * like %, and that
-//    cannot be escaped, so a typed * becomes _ and matches any one character
-//    (so "a*b" also finds "axb"). This is kept on purpose.
-// 2. Filter layer: the pattern is put in double quotes with \ and " escaped, so
-//    , ( ) and quotes cannot end the condition or add another one.
-// See "Reserved characters in filter values" in docs/supabase-crud-reference.md
-// for the quoting and escaping rules.
-function searchFilter(search: string): string {
-  const likeSafe = search
-    .replace(/[\\%_]/g, "\\$&")
-    .replace(/\*/g, "_");
-  const quoted = `"%${likeSafe.replace(/[\\"]/g, "\\$&")}%"`;
-  return `title.ilike.${quoted},content.ilike.${quoted}`;
+// Note columns to read. A plain select() would also return the generated
+// search_vector column, which the app never uses.
+const NOTE_COLUMNS =
+  "id, created_at, title, content, updated_at, collection_id, pinned";
+
+// Turns typed text into a safe to_tsquery string: "meet notes" -> "meet:* & notes:*".
+// Only letters and digits are kept; everything else (including every tsquery
+// operator such as & | ! ( ) < > : * ' and backslash) just separates words, so
+// the text cannot change the query or cause a syntax error. Every word must match
+// (&) and matches as a prefix (:*), so results narrow while typing.
+// Returns null when no words are left (for example "???"): nothing to search for.
+function toTsQuery(search: string): string | null {
+  const words = search
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+  if (words.length === 0) return null;
+  return words.map((w) => `${w}:*`).join(" & ");
 }
 
-// `search` is trimmed text; empty or missing means no search.
+// `search` is trimmed text; empty or missing means no search. Text with no
+// searchable words matches no notes.
 export async function listNotes(search?: string): Promise<Note[]> {
+  const tsquery = search ? toTsQuery(search) : undefined;
+  if (tsquery === null) return [];
+
   const supabase = await createClient();
-  let query = supabase.from("notes").select();
-  if (search) query = query.or(searchFilter(search));
+  let query = supabase.from("notes").select(NOTE_COLUMNS);
+  if (tsquery) {
+    query = query.textSearch("search_vector", tsquery, { config: "english" });
+  }
   const { data, error } = await query
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })
@@ -53,7 +61,7 @@ export async function getNote(id: number): Promise<Note | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
-    .select()
+    .select(NOTE_COLUMNS)
     .eq("id", id)
     .maybeSingle();
 
@@ -135,9 +143,17 @@ export async function listNotesByCollection(
   collectionId: string,
   search?: string,
 ): Promise<Note[]> {
+  const tsquery = search ? toTsQuery(search) : undefined;
+  if (tsquery === null) return [];
+
   const supabase = await createClient();
-  let query = supabase.from("notes").select().eq("collection_id", collectionId);
-  if (search) query = query.or(searchFilter(search));
+  let query = supabase
+    .from("notes")
+    .select(NOTE_COLUMNS)
+    .eq("collection_id", collectionId);
+  if (tsquery) {
+    query = query.textSearch("search_vector", tsquery, { config: "english" });
+  }
   const { data, error } = await query
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })
@@ -149,9 +165,17 @@ export async function listNotesByCollection(
 
 // Notes whose collection_id is empty.
 export async function listUncollectedNotes(search?: string): Promise<Note[]> {
+  const tsquery = search ? toTsQuery(search) : undefined;
+  if (tsquery === null) return [];
+
   const supabase = await createClient();
-  let query = supabase.from("notes").select().is("collection_id", null);
-  if (search) query = query.or(searchFilter(search));
+  let query = supabase
+    .from("notes")
+    .select(NOTE_COLUMNS)
+    .is("collection_id", null);
+  if (tsquery) {
+    query = query.textSearch("search_vector", tsquery, { config: "english" });
+  }
   const { data, error } = await query
     .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })

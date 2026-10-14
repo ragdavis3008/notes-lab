@@ -121,40 +121,6 @@ const { data, error } = await supabase
   .in('name', ['Leia', 'Han'])
 ```
 
-## Filter: case-insensitive pattern match (ilike)
-Source: https://supabase.com/docs/reference/javascript/using-filters-ilike
-
-```ts
-const { data, error } = await supabase
-  .from('characters')
-  .select()
-  .ilike('name', '%lu%')
-```
-
-## Filter: match any of several conditions (or)
-Source: https://supabase.com/docs/reference/javascript/using-filters-or
-
-```ts
-const { data, error } = await supabase
-  .from('characters')
-  .select('name')
-  .or('id.eq.2,name.eq.Han')
-```
-
-## Reserved characters in filter values (quoting and escaping)
-Source: https://docs.postgrest.org/en/stable/references/api/url_grammar.html#reserved-characters
-(PostgREST is the API layer behind supabase-js filters such as `.or()`.)
-
-```text
-curl "http://localhost:3000/marks?name=in.(%22Quote:%5C%22%22,%22Backslash:%5C%5C%22)"
-```
-
-How this project uses it: lib/db.ts wraps the search pattern in double quotes inside
-`.or()`, and escapes `"` as `\"` and `\` as `\\`, so commas, brackets and quotes in the
-search text cannot change the filter. `%` and `_` are escaped separately so `ilike`
-treats them literally. A typed `*` is replaced with `_`, because PostgREST treats `*`
-as a wildcard in like/ilike.
-
 ## Full-text search filter (textSearch)
 Source: https://supabase.com/docs/reference/javascript/using-filters-textsearch
 
@@ -166,6 +132,10 @@ const result = await supabase
     config: "english",
   });
 ```
+How this project uses it: lib/db.ts keeps only the letters and digits from the search
+text, turns each word into `word:*` and joins them with ` & `, then calls
+`.textSearch('search_vector', 'meet:* & notes:*', { config: 'english' })`. Notes are
+read with an explicit column list, so search_vector is never sent to the app.
 
 ## Full-text search: prefix matching while typing
 Source: https://supabase.com/docs/guides/database/full-text-search
