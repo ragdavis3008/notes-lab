@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { addTagToNoteAction, removeTagFromNoteAction } from "@/app/actions";
+import {
+  addTagToNoteAction,
+  removeTagFromNoteAction,
+  type TagState,
+} from "@/app/actions";
 import type { Tag } from "@/lib/types";
 
 type Props = {
@@ -22,16 +26,24 @@ export function NoteTags({ noteId, tags }: Props) {
     return () => clearTimeout(timer);
   }, [saved]);
 
-  function run(action: () => Promise<{ error: string } | undefined>, onOk?: () => void) {
+  function run(action: () => Promise<TagState>, onOk?: () => void) {
     setError(undefined);
     setSaved(false);
     startTransition(async () => {
-      const result = await action();
-      if (result?.error) {
-        setError(result.error);
-      } else {
+      let result: TagState;
+      try {
+        result = await action();
+      } catch (e) {
+        console.error("Tag action failed:", e);
+        setError("Something went wrong. Please try again.");
+        return;
+      }
+      // Only an explicit ok counts as saved.
+      if ("ok" in result) {
         onOk?.();
         setSaved(true);
+      } else {
+        setError(result.error);
       }
     });
   }

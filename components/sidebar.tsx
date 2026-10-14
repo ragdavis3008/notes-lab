@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { NewCollectionForm } from "@/components/new-collection-form";
 import { listCollections, listNotes, listTags } from "@/lib/db";
 import { filterHref } from "@/lib/filter-url";
-import type { Note } from "@/lib/types";
+import type { Note, Tag } from "@/lib/types";
 
 export type SidebarSelection = "all" | "uncollected" | (string & {});
 
@@ -136,23 +136,19 @@ async function Groups({
 }
 
 // Clicking a tag adds it to (or removes it from) the filter, keeping the collection.
-async function TagList({
+function TagList({
   selected,
   tagIds,
+  tags,
+  loadError,
 }: {
   selected: SidebarSelection;
   tagIds: number[];
+  tags: Tag[];
+  loadError?: string;
 }) {
-  let tags;
-  try {
-    tags = await listTags();
-  } catch (e) {
-    console.error("TagList failed:", e);
-    return (
-      <p className="px-3 text-red-600">
-        Error loading tags: {e instanceof Error ? e.message : "unknown error"}
-      </p>
-    );
+  if (loadError !== undefined) {
+    return <p className="px-3 text-red-600">Error loading tags: {loadError}</p>;
   }
 
   if (tags.length === 0) {
@@ -197,7 +193,21 @@ async function Nav({
   selectedTags,
   activeNote,
 }: Props) {
-  const [selected, tagIds] = await Promise.all([selectedPromise, selectedTags]);
+  const [selected, urlTagIds] = await Promise.all([selectedPromise, selectedTags]);
+
+  // Ignore ids from the URL that match no existing tag, like app/page.tsx does.
+  let tags: Tag[] = [];
+  let loadError: string | undefined;
+  try {
+    tags = await listTags();
+  } catch (e) {
+    console.error("Sidebar tags failed:", e);
+    loadError = e instanceof Error ? e.message : "unknown error";
+  }
+  const tagIds = loadError
+    ? []
+    : urlTagIds.filter((id) => tags.some((t) => t.id === id));
+
   return (
     <nav className="flex flex-col gap-1 text-sm">
       <Link
@@ -214,7 +224,12 @@ async function Nav({
       <p className="mt-3 px-3 text-xs font-medium uppercase text-foreground/50">
         Tags
       </p>
-      <TagList selected={selected} tagIds={tagIds} />
+      <TagList
+        selected={selected}
+        tagIds={tagIds}
+        tags={tags}
+        loadError={loadError}
+      />
     </nav>
   );
 }

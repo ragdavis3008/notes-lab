@@ -125,7 +125,8 @@ export async function setNoteCollectionAction(
   revalidatePath("/", "layout");
 }
 
-export type TagState = { error: string } | undefined;
+// Always set: `ok` on success, `error` on any failure.
+export type TagState = { ok: true } | { error: string };
 
 export async function addTagToNoteAction(
   noteId: number,
@@ -140,6 +141,7 @@ export async function addTagToNoteAction(
     return { error: errorMessage(e, "Could not add the tag. Please try again.") };
   }
   revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 export async function removeTagFromNoteAction(
@@ -153,6 +155,7 @@ export async function removeTagFromNoteAction(
     return { error: errorMessage(e, "Could not remove the tag. Please try again.") };
   }
   revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 export async function deleteNoteAction(id: number): Promise<DeleteState> {
