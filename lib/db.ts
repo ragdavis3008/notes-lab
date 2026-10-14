@@ -32,6 +32,7 @@ export async function listNotes(search?: string): Promise<Note[]> {
   let query = supabase.from("notes").select();
   if (search) query = query.or(searchFilter(search));
   const { data, error } = await query
+    .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -130,6 +131,7 @@ export async function listNotesByCollection(
   let query = supabase.from("notes").select().eq("collection_id", collectionId);
   if (search) query = query.or(searchFilter(search));
   const { data, error } = await query
+    .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -143,6 +145,7 @@ export async function listUncollectedNotes(search?: string): Promise<Note[]> {
   let query = supabase.from("notes").select().is("collection_id", null);
   if (search) query = query.or(searchFilter(search));
   const { data, error } = await query
+    .order("pinned", { ascending: false })
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -167,6 +170,22 @@ export async function setNoteCollection(
 
   // 23503 = Postgres foreign_key_violation (collection_id points to nothing).
   if (error?.code === "23503") throw new CollectionNotFoundError();
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new NoteNotFoundError();
+}
+
+// Pinning is not an edit of the note, so updated_at is deliberately left alone.
+export async function setNotePinned(
+  id: number,
+  pinned: boolean,
+): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .update({ pinned })
+    .eq("id", id)
+    .select("id");
+
   if (error) throw new Error(error.message);
   if (data.length === 0) throw new NoteNotFoundError();
 }

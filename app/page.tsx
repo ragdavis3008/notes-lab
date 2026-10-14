@@ -11,6 +11,7 @@ import {
   listTagsByNoteIds,
   listUncollectedNotes,
 } from "@/lib/db";
+import { PinButton, PinIcon } from "@/components/pin-button";
 import { SearchBox } from "@/components/search-box";
 import { filterHref, normalizeSearch, parseTagIds } from "@/lib/filter-url";
 import type { Note, Tag } from "@/lib/types";
@@ -162,12 +163,26 @@ function NotesList({
   return (
     <ul className="flex flex-col gap-3">
       {notes.map((note) => (
-        <li key={note.id}>
-          <Link
-            href={`/notes/${note.id}`}
-            className="block rounded-md border border-foreground/10 p-4 hover:bg-foreground/5"
-          >
-            <h2 className="font-medium">{note.title}</h2>
+        <li
+          key={note.id}
+          className={`relative rounded-md border hover:bg-foreground/5 ${
+            note.pinned ? "border-foreground/40" : "border-foreground/10"
+          }`}
+        >
+          {/* The pin button is a sibling of the link: a button inside a link is invalid. */}
+          <div className="absolute right-3 top-3">
+            <PinButton noteId={note.id} pinned={note.pinned} />
+          </div>
+          <Link href={`/notes/${note.id}`} className="block p-4 pr-16">
+            <h2 className="font-medium">
+              {note.pinned && (
+                <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs font-normal text-foreground/70">
+                  <PinIcon filled />
+                  Pinned
+                </span>
+              )}
+              {note.title}
+            </h2>
             {note.content && (
               <p className="mt-1 whitespace-pre-line text-sm text-foreground/70">
                 {preview(note.content)}

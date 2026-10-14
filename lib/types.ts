@@ -6,6 +6,7 @@ export type Note = {
   content: string | null;
   updated_at: string | null;
   collection_id: string | null; // uuid
+  pinned: boolean; // pinned notes are listed first
 };
 
 // Matches the `tags` table in docs/database-schema.md.
