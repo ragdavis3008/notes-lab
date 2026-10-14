@@ -44,6 +44,15 @@ session couldn't see the earlier conversation: the first session did ask in its 
 and I approved the change. A new session is good at checking the code against the
 rules, but it only knows what is in the repo, not what was agreed in chat.
 
+**Second run (PR 2, collections):** the fresh session found no rule violations. It
+confirmed that all database access stays in `lib/db.ts`, that the uuid and int8 id
+types match the schema, and that only cited Supabase methods were used (the `eq` and
+`is` references I added before building paid off). I acted on one small finding: the
+"Last checked against the dashboard" date in `docs/database-schema.md` was not updated
+after I added the case-insensitive unique rule to `collections.name`. I left two
+minor notes as they are: checking Postgres error codes (not a Supabase method), and
+chaining two `.order()` calls (the same cited method used twice).
+
 ## Optional task(s)
 
 ## Known limitations
