@@ -92,3 +92,22 @@ const { data, error } = await supabase
   .select()
   .is('name', null)
 ```
+
+## Read related rows through a join table
+Source: https://supabase.com/docs/reference/javascript/select
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select()
+```
+
+## Filter: value is in a list (in)
+Source: https://supabase.com/docs/reference/javascript/using-filters-in
+
+```ts
+const { data, error } = await supabase
+  .from('characters')
+  .select()
+  .in('name', ['Leia', 'Han'])
+```
