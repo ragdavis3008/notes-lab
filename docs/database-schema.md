@@ -58,7 +58,8 @@ Primary key: (note_id, tag_id). There is no separate id column.
 ## Rules for the app
 - Trim tag names and save them in lowercase. The database rejects duplicates
   regardless of capitals.
-- Set `updated_at` to the current time whenever a note is updated.
+- Set `updated_at` to the current time whenever a note's title, content or collection
+  changes. Pinning or unpinning does not change it (see the pinned rule below).
 - Tag filter: when several tags are selected, show only notes that have ALL of
   the selected tags, not notes that have any one of them.
 - Every notes list shows pinned notes first, then the rest, each group ordered by
