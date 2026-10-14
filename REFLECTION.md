@@ -48,6 +48,13 @@ server trimmed the search text differently. I corrected a comment that wrongly s
 `*` is always matched literally. I left the repeated query code, the in-memory tag
 filter, and links that drop text typed in the last 300 ms as they are.
 
+**Fifth run (PR 5, pinned notes):** 6 findings. Before fixing anything, I tested the
+most serious one myself: the reviewer suspected that pinning on the note page would
+wipe unsaved edits. In the browser the typed title survived, so it was a false alarm.
+I fixed three: the pin error could cover the card text, only part of the card was
+clickable, and the pin action didn't validate its input. I left the repeated ordering
+code as it was and added a comment where the tag filter relies on the list order.
+
 ## New-session diff review
 After `/clear`, I asked a fresh Claude Code session to compare `git diff main...HEAD`
 with the rules in CLAUDE.md and docs/database-schema.md, without editing anything.
@@ -85,6 +92,13 @@ reference to `docs/` after the code review. That review flagged the missing cita
 the new-session review confirmed the fix closed the gap.
 
 ## Optional task(s)
+**Pinned notes (Medium, PR 5).** I added a `pinned` boolean column in the dashboard
+(default false, required) and documented it in `docs/database-schema.md` before any
+code. I decided up front that pinning does not change `updated_at`, so pinning or
+unpinning never reshuffles the rest of the list. Every list (All notes, collections,
+Uncollected, tag filters and search) sorts pinned notes first, then by `updated_at`.
+I chose this task because my RFP Tender Tracker needs the same thing: urgent tenders
+pinned to the top regardless of recent edits.
 
 ## Known limitations
 - Unknown top-level paths like `/banana` redirect to login because of the
