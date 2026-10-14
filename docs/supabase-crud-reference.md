@@ -137,9 +137,16 @@ text, turns each word into `word:*` and joins them with ` & `, then calls
 `.textSearch('search_vector', 'meet:* & notes:*', { config: 'english' })`. Notes are
 read with an explicit column list, so search_vector is never sent to the app.
 
-## Full-text search: prefix matching while typing
-Source: https://supabase.com/docs/guides/database/full-text-search
+The english config must match the config used for search_vector and its index. With
+it, Postgres stems words (edit finds edited) and drops stop words (the, and, of), so a
+search made only of stop words returns no notes.
 
-```ts
+## Full-text search: prefix matching while typing
+Source: https://supabase.com/docs/guides/database/full-text-search (section "Implementing partial search")
+
+```sql
 select title from books where to_tsvector(title) @@ to_tsquery('Lit:*');
 ```
+
+Note: `.textSearch()` without a `type` option uses `to_tsquery`, so the same `word:*`
+prefix syntax works there. This project does not use the RPC approach from the guide.

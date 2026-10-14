@@ -71,6 +71,7 @@ Primary key: (note_id, tag_id). There is no separate id column.
 - Search uses full-text search on notes.search_vector with .textSearch(), with prefix
   matching (word:*) so results update while typing. Never send search_vector in an
   insert or update; the database fills it in.
+- Search matches whole words and word beginnings, not text inside a word.
 
 ## Access
 - RLS is enabled on all four tables.
