@@ -11,13 +11,18 @@ import {
   listTagsByNoteIds,
   listUncollectedNotes,
 } from "@/lib/db";
-import { filterHref, parseTagIds } from "@/lib/filter-url";
+import { SearchBox } from "@/components/search-box";
+import { filterHref, normalizeSearch, parseTagIds } from "@/lib/filter-url";
 import type { Note, Tag } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 
 const PREVIEW_LENGTH = 120;
 
-type Params = { collection?: string | string[]; tag?: string | string[] };
+type Params = {
+  collection?: string | string[];
+  tag?: string | string[];
+  q?: string | string[];
+};
 type SearchParams = Promise<Params>;
 
 function readCollection(params: Params) {
@@ -44,6 +49,8 @@ function BackToAll() {
 async function Content({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const collectionParam = readCollection(params);
+  // Blank or spaces-only search is "" and shows the normal list.
+  const search = normalizeSearch(params.q);
 
   let title = "All notes";
   let emptyMessage = "No notes yet. Create your first note.";
@@ -58,11 +65,11 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
     }
 
     if (collectionParam === undefined || collectionParam === "") {
-      notes = await listNotes();
+      notes = await listNotes(search);
     } else if (collectionParam === "uncollected") {
       title = "Uncollected";
       emptyMessage = "No uncollected notes.";
-      notes = await listUncollectedNotes();
+      notes = await listUncollectedNotes(search);
     } else {
       // Only accept an id that belongs to an existing collection.
       // Postgres returns lowercase uuids, so lowercase the param first.
@@ -83,7 +90,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       }
       title = collection.name;
       emptyMessage = "No notes in this collection yet.";
-      notes = await listNotesByCollection(collection.id);
+      notes = await listNotesByCollection(collection.id, search);
     }
 
     // The tag filter narrows the collection's notes: only notes with ALL tags.
@@ -92,8 +99,11 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       notes = notes.filter((n) => withAllTags.has(n.id));
       emptyMessage = "No notes match the selected tags.";
     }
+    // The search message wins: it names what the user typed.
+    if (search) emptyMessage = `No notes match your search "${search}".`;
     tagsByNote = await listTagsByNoteIds(notes.map((n) => n.id));
   } catch (e) {
+    console.error("Loading notes failed:", e);
     return (
       <p className="text-red-600">
         Error loading notes: {e instanceof Error ? e.message : "unknown error"}
@@ -116,7 +126,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
         <p className="mb-4 text-sm text-foreground/70">
           Tags: {selectedTags.map((t) => t.name).join(", ")}{" "}
           <Link
-            href={filterHref(collectionParam || "all", [])}
+            href={filterHref(collectionParam || "all", [], search)}
             className="underline"
           >
             Clear tag filter
@@ -143,7 +153,7 @@ function NotesList({
 }) {
   if (notes.length === 0) {
     return (
-      <p className="rounded-md border border-dashed border-foreground/20 p-8 text-center text-foreground/70">
+      <p className="break-words rounded-md border border-dashed border-foreground/20 p-8 text-center text-foreground/70">
         {emptyMessage}
       </p>
     );
@@ -190,8 +200,18 @@ export default function Home({ searchParams }: { searchParams: SearchParams }) {
   const selectedTags: Promise<number[]> = searchParams.then((p) =>
     parseTagIds(p.tag),
   );
+  const searchText: Promise<string> = searchParams.then((p) =>
+    normalizeSearch(p.q),
+  );
   return (
-    <AppShell selected={selected} selectedTags={selectedTags}>
+    <AppShell
+      selected={selected}
+      selectedTags={selectedTags}
+      searchText={searchText}
+    >
+      <Suspense fallback={null}>
+        <SearchBox />
+      </Suspense>
       <Suspense fallback={<p>Loading notes...</p>}>
         <Content searchParams={searchParams} />
       </Suspense>

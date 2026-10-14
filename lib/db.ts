@@ -8,11 +8,27 @@ export class NoteNotFoundError extends Error {
   }
 }
 
-export async function listNotes(): Promise<Note[]> {
+// Builds the `.or()` filter that matches `search` in the title or the content,
+// ignoring capitals. The text is escaped twice so it is always searched for
+// literally:
+// 1. LIKE layer: \ % _ are escaped. PostgREST also treats * like %, and that
+//    cannot be escaped, so * becomes _ (any one character, which includes *).
+// 2. Filter layer: the pattern is put in double quotes with \ and " escaped, so
+//    , ( ) and quotes cannot end the condition or add another one.
+function searchFilter(search: string): string {
+  const likeSafe = search
+    .replace(/[\\%_]/g, "\\$&")
+    .replace(/\*/g, "_");
+  const quoted = `"%${likeSafe.replace(/[\\"]/g, "\\$&")}%"`;
+  return `title.ilike.${quoted},content.ilike.${quoted}`;
+}
+
+// `search` is trimmed text; empty or missing means no search.
+export async function listNotes(search?: string): Promise<Note[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notes")
-    .select()
+  let query = supabase.from("notes").select();
+  if (search) query = query.or(searchFilter(search));
+  const { data, error } = await query
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -105,12 +121,12 @@ export async function createCollection(name: string): Promise<void> {
 
 export async function listNotesByCollection(
   collectionId: string,
+  search?: string,
 ): Promise<Note[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notes")
-    .select()
-    .eq("collection_id", collectionId)
+  let query = supabase.from("notes").select().eq("collection_id", collectionId);
+  if (search) query = query.or(searchFilter(search));
+  const { data, error } = await query
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -119,12 +135,11 @@ export async function listNotesByCollection(
 }
 
 // Notes whose collection_id is empty.
-export async function listUncollectedNotes(): Promise<Note[]> {
+export async function listUncollectedNotes(search?: string): Promise<Note[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notes")
-    .select()
-    .is("collection_id", null)
+  let query = supabase.from("notes").select().is("collection_id", null);
+  if (search) query = query.or(searchFilter(search));
+  const { data, error } = await query
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
 
