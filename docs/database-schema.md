@@ -21,7 +21,7 @@ Last checked against the dashboard: 2026-10-13
 | --- | --- | --- | --- | --- |
 | id | uuid | gen_random_uuid() | yes | primary key |
 | created_at | timestamptz | now() | yes | |
-| name | text | — | yes | |
+| name | text | — | yes | unique, case-insensitive (unique index on lower(name); exact-match constraint collections_name_key also exists) |
 
 ### notes
 | Column | Type | Default | Required | Notes |
