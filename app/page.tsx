@@ -11,7 +11,8 @@ import {
   listTagsByNoteIds,
   listUncollectedNotes,
 } from "@/lib/db";
-import { PinButton, PinIcon } from "@/components/pin-button";
+import { NoteCard } from "@/components/note-card";
+import { PinIcon } from "@/components/pin-button";
 import { SearchBox } from "@/components/search-box";
 import { filterHref, normalizeSearch, parseTagIds } from "@/lib/filter-url";
 import type { Note, Tag } from "@/lib/types";
@@ -97,6 +98,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
     // The tag filter narrows the collection's notes: only notes with ALL tags.
     if (selectedTags.length > 0) {
       const withAllTags = await listNoteIdsWithAllTags(selectedTags.map((t) => t.id));
+      // Relies on the list already being sorted pinned-first (filter keeps the order).
       notes = notes.filter((n) => withAllTags.has(n.id));
       emptyMessage = "No notes match the selected tags.";
     }
@@ -163,17 +165,13 @@ function NotesList({
   return (
     <ul className="flex flex-col gap-3">
       {notes.map((note) => (
-        <li
-          key={note.id}
-          className={`relative rounded-md border hover:bg-foreground/5 ${
-            note.pinned ? "border-foreground/40" : "border-foreground/10"
-          }`}
-        >
-          {/* The pin button is a sibling of the link: a button inside a link is invalid. */}
-          <div className="absolute right-3 top-3">
-            <PinButton noteId={note.id} pinned={note.pinned} />
-          </div>
-          <Link href={`/notes/${note.id}`} className="block p-4 pr-16">
+        <NoteCard key={note.id} noteId={note.id} pinned={note.pinned}>
+          {/* The pin button is a sibling of the link: a button inside a link is invalid.
+              The ::after layer stretches the link over the whole card and draws the focus ring. */}
+          <Link
+            href={`/notes/${note.id}`}
+            className="block p-4 pr-16 outline-none after:absolute after:inset-0 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-foreground"
+          >
             <h2 className="font-medium">
               {note.pinned && (
                 <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs font-normal text-foreground/70">
@@ -201,7 +199,7 @@ function NotesList({
               </ul>
             )}
           </Link>
-        </li>
+        </NoteCard>
       ))}
     </ul>
   );

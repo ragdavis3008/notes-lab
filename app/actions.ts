@@ -132,6 +132,11 @@ export async function setNotePinnedAction(
   noteId: number,
   pinned: boolean,
 ): Promise<PinState> {
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(noteId) || typeof pinned !== "boolean") {
+    return { error: "Could not change the pin. Please try again." };
+  }
+
   try {
     await setNotePinned(noteId, pinned);
   } catch (e) {

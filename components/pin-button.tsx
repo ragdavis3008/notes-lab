@@ -7,6 +7,8 @@ type Props = {
   noteId: number;
   pinned: boolean;
   showLabel?: boolean;
+  // When given, the parent shows the error (called with undefined to clear it).
+  onError?: (message: string | undefined) => void;
 };
 
 export function PinIcon({ filled }: { filled: boolean }) {
@@ -28,7 +30,7 @@ export function PinIcon({ filled }: { filled: boolean }) {
   );
 }
 
-export function PinButton({ noteId, pinned, showLabel = false }: Props) {
+export function PinButton({ noteId, pinned, showLabel = false, onError }: Props) {
   // Flips at once; goes back to the real value if the save fails.
   const [shownPinned, setShownPinned] = useOptimistic(pinned);
   const [error, setError] = useState<string>();
@@ -37,10 +39,14 @@ export function PinButton({ noteId, pinned, showLabel = false }: Props) {
   function toggle() {
     const next = !shownPinned;
     setError(undefined);
+    onError?.(undefined);
     startTransition(async () => {
       setShownPinned(next);
       const result = await setNotePinnedAction(noteId, next);
-      if (result?.error) setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        onError?.(result.error);
+      }
     });
   }
 
@@ -60,7 +66,7 @@ export function PinButton({ noteId, pinned, showLabel = false }: Props) {
         <PinIcon filled={shownPinned} />
         {showLabel && <span>{shownPinned ? "Unpin" : "Pin"}</span>}
       </button>
-      {error && (
+      {error && !onError && (
         <p role="alert" className="text-sm text-red-600">
           {error}
         </p>
