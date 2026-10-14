@@ -62,6 +62,13 @@ after I added the case-insensitive unique rule to `collections.name`. I left two
 minor notes as they are: checking Postgres error codes (not a Supabase method), and
 chaining two `.order()` calls (the same cited method used twice).
 
+**Third run (PR 3, tags):** the fresh session found no rule violations. It confirmed the
+join table is only accessed through `lib/db.ts`, that ids are typed as numbers (int8),
+that tag names are trimmed and lowercased, and that the filter keeps only notes with
+ALL selected tags. Its three minor observations were all decisions I had already made
+and recorded after the code review (Postgres error codes, the exact-name tag lookup,
+and the unused join-table doc example), so the two reviews agreed.
+
 ## Optional task(s)
 
 ## Known limitations
