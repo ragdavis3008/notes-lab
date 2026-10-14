@@ -74,6 +74,20 @@ column was documented before the code used it, and that new tags still get the g
 default. It also named what a diff can't show (how files were edited, and whether
 the CHECK constraint really exists in the dashboard), which I had verified myself.
 
+**Seventh run (PR 7, full-text search):** 9 findings. Most were the trade-offs I had
+already accepted and tested (no matching inside words, stop words, English only). I
+fixed three: accented letters typed as two characters were split into fragments, the
+search logic was copied into three functions (now one shared helper), and the
+hand-kept column list needed a warning comment. I also updated my docs to cover the
+English config and stop words, which the reviewer said the cited reference didn't.
+
+**Seventh run (PR 7, full-text search):** no rule violations. It confirmed that
+search_vector is never sent in inserts or updates and is left out of every note read,
+and that the new textSearch usage is covered by the cited docs. It also pointed out
+that an unused starter tutorial component still calls Supabase directly, outside
+lib/db.ts. It isn't part of my app's pages, but it shows that a new session reads
+beyond the diff and can spot leftovers from the starter.
+
 ## New-session diff review
 After `/clear`, I asked a fresh Claude Code session to compare `git diff main...HEAD`
 with the rules in CLAUDE.md and docs/database-schema.md, without editing anything.
@@ -127,6 +141,16 @@ only appeared after restarting the dev server. The CHECK constraint also proved 
 worth when I typed "red " with a trailing space in the Table Editor and the database
 refused it. For my tender tracker, this is how I'd colour-code phases or priorities.
 
+**Server-side full-text search (Hard, PR 7).** I added a generated `search_vector`
+column (English config, title weighted above content) and a GIN index in SQL, cited
+`.textSearch()` and the `word:*` prefix syntax, and replaced the ilike search. The
+user-facing behaviour stayed the same, but the matching changed: whole words and word
+beginnings instead of any text fragment, word forms like "edit" finding "edited", and
+filler words ignored. Safety got simpler: only letters and digits reach the query, so
+there is nothing to escape. I chose `.textSearch()` on the indexed column over the
+guide's RPC function, because it fits the existing filter chain and uses the index.
+For my tender tracker, this is how I'd search long tender descriptions quickly.
+
 ## Known limitations
 - Unknown top-level paths like `/banana` redirect to login because of the
   starter's proxy. Left as is until authentication is added.
@@ -136,8 +160,7 @@ refused it. For my tender tracker, this is how I'd colour-code phases or priorit
   sets could lose tag labels or filter matches.
 - Opening a note and coming back resets the tag filter, because note pages have
   their own address without filters.
-
-  - A typed `*` in the search matches any one character, because PostgREST treats `*` as
-  a wildcard in like/ilike and it cannot be escaped.
+- Search matches whole words and word beginnings only, uses English stemming and stop
+  words, and does not search tags. A search made only of filler words returns nothing.
 
 ## What I would keep or change next time
