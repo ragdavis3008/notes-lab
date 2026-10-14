@@ -57,4 +57,5 @@ No authentication and no deployment in this project.
 - `note_tags` is a join table with no `id` column. Its primary key is
   (`note_id`, `tag_id`).
 - Tag names are trimmed and saved in lowercase.
-- Set `notes.updated_at` to the current time whenever a note is updated.
+- Set `notes.updated_at` to the current time whenever a note's title, content or
+  collection changes. Pinning or unpinning a note does not change `updated_at`.

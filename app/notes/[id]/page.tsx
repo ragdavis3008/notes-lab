@@ -6,6 +6,7 @@ import { CollectionSelect } from "@/components/collection-select";
 import { DeleteNoteButton } from "@/components/delete-note-button";
 import { NoteForm } from "@/components/note-form";
 import { NoteTags } from "@/components/note-tags";
+import { PinButton } from "@/components/pin-button";
 import { getNote, listCollections, listTagsForNote } from "@/lib/db";
 
 function NoteNotFound() {
@@ -46,7 +47,10 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold">Edit note</h1>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Edit note</h1>
+        <PinButton noteId={note.id} pinned={note.pinned} showLabel />
+      </div>
       <CollectionSelect
         noteId={note.id}
         collections={collections}

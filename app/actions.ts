@@ -12,6 +12,7 @@ import {
   NoteNotFoundError,
   removeTagFromNote,
   setNoteCollection,
+  setNotePinned,
   updateNote,
 } from "@/lib/db";
 import { isUuid } from "@/lib/uuid";
@@ -121,6 +122,26 @@ export async function setNoteCollectionAction(
   } catch (e) {
     console.error("setNoteCollectionAction failed:", e);
     return { error: errorMessage(e, "Could not change the collection. Please try again.") };
+  }
+  revalidatePath("/", "layout");
+}
+
+export type PinState = { error: string } | undefined;
+
+export async function setNotePinnedAction(
+  noteId: number,
+  pinned: boolean,
+): Promise<PinState> {
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(noteId) || typeof pinned !== "boolean") {
+    return { error: "Could not change the pin. Please try again." };
+  }
+
+  try {
+    await setNotePinned(noteId, pinned);
+  } catch (e) {
+    console.error("setNotePinnedAction failed:", e);
+    return { error: errorMessage(e, "Could not change the pin. Please try again.") };
   }
   revalidatePath("/", "layout");
 }

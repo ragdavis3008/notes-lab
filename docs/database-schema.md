@@ -32,6 +32,7 @@ Last checked against the dashboard: 2026-10-14
 | content | text | — | no | |
 | updated_at | timestamptz | now() | no | the app must set this to the current time on every update |
 | collection_id | uuid | — | no | foreign key → collections.id, on delete SET NULL |
+| pinned | bool | false | yes | pinned notes stay at the top of their list |
 
 ### tags
 | Column | Type | Default | Required | Notes |
@@ -57,9 +58,12 @@ Primary key: (note_id, tag_id). There is no separate id column.
 ## Rules for the app
 - Trim tag names and save them in lowercase. The database rejects duplicates
   regardless of capitals.
-- Set `updated_at` to the current time whenever a note is updated.
+- Set `updated_at` to the current time whenever a note's title, content or collection
+  changes. Pinning or unpinning does not change it (see the pinned rule below).
 - Tag filter: when several tags are selected, show only notes that have ALL of
   the selected tags, not notes that have any one of them.
+- Every notes list shows pinned notes first, then the rest, each group ordered by
+  updated_at, newest first. Pinning or unpinning a note does not change updated_at.
 
 ## Access
 - RLS is enabled on all four tables.
