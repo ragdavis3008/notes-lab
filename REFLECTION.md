@@ -79,6 +79,11 @@ ALL selected tags. Its three minor observations were all decisions I had already
 and recorded after the code review (Postgres error codes, the exact-name tag lookup,
 and the unused join-table doc example), so the two reviews agreed.
 
+**Fourth run (PR 4, search):** the fresh session found no rule violations. This time the
+search escaping was covered, because I had added the PostgREST "Reserved characters"
+reference to `docs/` after the code review. That review flagged the missing citation;
+the new-session review confirmed the fix closed the gap.
+
 ## Optional task(s)
 
 ## Known limitations
