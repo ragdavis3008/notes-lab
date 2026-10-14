@@ -9,12 +9,15 @@ export class NoteNotFoundError extends Error {
 }
 
 // Builds the `.or()` filter that matches `search` in the title or the content,
-// ignoring capitals. The text is escaped twice so it is always searched for
-// literally:
+// ignoring capitals. The text is escaped twice. Everything is searched for
+// literally except *:
 // 1. LIKE layer: \ % _ are escaped. PostgREST also treats * like %, and that
-//    cannot be escaped, so * becomes _ (any one character, which includes *).
+//    cannot be escaped, so a typed * becomes _ and matches any one character
+//    (so "a*b" also finds "axb"). This is kept on purpose.
 // 2. Filter layer: the pattern is put in double quotes with \ and " escaped, so
 //    , ( ) and quotes cannot end the condition or add another one.
+// See "Reserved characters in filter values" in docs/supabase-crud-reference.md
+// for the quoting and escaping rules.
 function searchFilter(search: string): string {
   const likeSafe = search
     .replace(/[\\%_]/g, "\\$&")
