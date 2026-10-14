@@ -44,6 +44,7 @@ No authentication and no deployment in this project.
   If none exists, ask me instead of guessing.
 - Show clear empty-state messages instead of blank screens.
 - Keep the code simple and explain major decisions.
+- Edit files only with the file edit tools, never with Python, sed, heredocs or other scripts, so every change can be reviewed as a diff.
 
 ## Table conventions
 - The full schema, ID types and app rules are in @docs/database-schema.md.
