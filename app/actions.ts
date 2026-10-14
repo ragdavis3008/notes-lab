@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  CollectionNotFoundError,
   createCollection,
   createNote,
   deleteNote,
@@ -33,7 +34,9 @@ function readFields(formData: FormData) {
 }
 
 function errorMessage(e: unknown, fallback: string) {
-  return e instanceof NoteNotFoundError ? e.message : fallback;
+  return e instanceof NoteNotFoundError || e instanceof CollectionNotFoundError
+    ? e.message
+    : fallback;
 }
 
 // redirect() works by throwing, so it must stay outside the try/catch blocks.
@@ -50,7 +53,7 @@ export async function createNoteAction(
     console.error("createNoteAction failed:", e);
     return { error: errorMessage(e, "Could not save the note. Please try again."), values };
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   redirect("/");
 }
 
@@ -68,7 +71,7 @@ export async function updateNoteAction(
     console.error("updateNoteAction failed:", e);
     return { error: errorMessage(e, "Could not save the note. Please try again."), values };
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   redirect("/");
 }
 
@@ -127,6 +130,6 @@ export async function deleteNoteAction(id: number): Promise<DeleteState> {
     console.error("deleteNoteAction failed:", e);
     return { error: errorMessage(e, "Could not delete the note. Please try again.") };
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   redirect("/");
 }

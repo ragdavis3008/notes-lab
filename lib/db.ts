@@ -67,10 +67,18 @@ export async function updateNote(
   if (data.length === 0) throw new NoteNotFoundError();
 }
 
-// Thrown when a collection with this exact name already exists.
+// Thrown when a collection with this name already exists. The unique index is
+// case-insensitive, so "Work" and "work" count as the same name.
 export class DuplicateCollectionError extends Error {
   constructor() {
     super("A collection with this name already exists.");
+  }
+}
+
+// Thrown when the chosen collection was deleted (foreign key violation).
+export class CollectionNotFoundError extends Error {
+  constructor() {
+    super("This collection no longer exists. Reload the page.");
   }
 }
 
@@ -139,6 +147,8 @@ export async function setNoteCollection(
     .eq("id", noteId)
     .select("id");
 
+  // 23503 = Postgres foreign_key_violation (collection_id points to nothing).
+  if (error?.code === "23503") throw new CollectionNotFoundError();
   if (error) throw new Error(error.message);
   if (data.length === 0) throw new NoteNotFoundError();
 }

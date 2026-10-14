@@ -5,18 +5,7 @@ import { useActionState, useEffect, useState } from "react";
 import { createCollectionAction } from "@/app/actions";
 
 export function NewCollectionForm() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(
-    createCollectionAction,
-    undefined,
-  );
-
-  // Safety net: the action already revalidates, but asking the router to
-  // refetch after every successful save guarantees the sidebar shows it.
-  useEffect(() => {
-    if (state?.saved) router.refresh();
-  }, [state?.saved, router]);
 
   if (!open) {
     return (
@@ -29,6 +18,24 @@ export function NewCollectionForm() {
       </button>
     );
   }
+
+  return <CollectionNameForm onClose={() => setOpen(false)} />;
+}
+
+// Its action state lives only while the form is open, so closing and
+// reopening starts with no old error or rejected value.
+function CollectionNameForm({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(
+    createCollectionAction,
+    undefined,
+  );
+
+  // Safety net: the action already revalidates, but asking the router to
+  // refetch after every successful save guarantees the sidebar shows it.
+  useEffect(() => {
+    if (state?.saved) router.refresh();
+  }, [state?.saved, router]);
 
   return (
     <form action={formAction} className="flex flex-col gap-2 px-1">
@@ -60,7 +67,7 @@ export function NewCollectionForm() {
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={onClose}
           className="text-sm text-foreground/70 hover:underline"
         >
           Close

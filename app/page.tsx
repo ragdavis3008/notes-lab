@@ -51,8 +51,10 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       notes = await listUncollectedNotes();
     } else {
       // Only accept an id that belongs to an existing collection.
-      const collection = isUuid(collectionParam)
-        ? (await listCollections()).find((c) => c.id === collectionParam)
+      // Postgres returns lowercase uuids, so lowercase the param first.
+      const wantedId = collectionParam.toLowerCase();
+      const collection = isUuid(wantedId)
+        ? (await listCollections()).find((c) => c.id === wantedId)
         : undefined;
       if (!collection) {
         return (
