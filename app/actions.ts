@@ -13,8 +13,11 @@ import {
   removeTagFromNote,
   setNoteCollection,
   setNotePinned,
+  setTagColor,
+  TagNotFoundError,
   updateNote,
 } from "@/lib/db";
+import { isTagColor } from "@/lib/tag-colors";
 import { isUuid } from "@/lib/uuid";
 
 // `values` echoes what the user typed so the form can keep it after an error.
@@ -37,7 +40,9 @@ function readFields(formData: FormData) {
 }
 
 function errorMessage(e: unknown, fallback: string) {
-  return e instanceof NoteNotFoundError || e instanceof CollectionNotFoundError
+  return e instanceof NoteNotFoundError ||
+    e instanceof CollectionNotFoundError ||
+    e instanceof TagNotFoundError
     ? e.message
     : fallback;
 }
@@ -177,6 +182,26 @@ export async function removeTagFromNoteAction(
   }
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+export type TagColorState = { error: string } | undefined;
+
+export async function setTagColorAction(
+  tagId: number,
+  color: string,
+): Promise<TagColorState> {
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(tagId) || !isTagColor(color)) {
+    return { error: "That colour is not valid." };
+  }
+
+  try {
+    await setTagColor(tagId, color);
+  } catch (e) {
+    console.error("setTagColorAction failed:", e);
+    return { error: errorMessage(e, "Could not change the colour. Please try again.") };
+  }
+  revalidatePath("/", "layout");
 }
 
 export async function deleteNoteAction(id: number): Promise<DeleteState> {

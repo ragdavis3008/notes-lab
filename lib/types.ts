@@ -1,3 +1,5 @@
+import type { TagColor } from "@/lib/tag-colors";
+
 // Matches the `notes` table in docs/database-schema.md.
 export type Note = {
   id: number; // int8
@@ -14,6 +16,7 @@ export type Tag = {
   id: number; // int8
   created_at: string;
   name: string; // trimmed, lowercase
+  color: TagColor; // one of the eight palette names, default 'gray'
 };
 
 // Matches the `note_tags` join table. It has no id column.
