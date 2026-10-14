@@ -154,3 +154,22 @@ How this project uses it: lib/db.ts wraps the search pattern in double quotes in
 search text cannot change the filter. `%` and `_` are escaped separately so `ilike`
 treats them literally. A typed `*` is replaced with `_`, because PostgREST treats `*`
 as a wildcard in like/ilike.
+
+## Full-text search filter (textSearch)
+Source: https://supabase.com/docs/reference/javascript/using-filters-textsearch
+
+```ts
+const result = await supabase
+  .from("texts")
+  .select("content")
+  .textSearch("content", `'eggs' & 'ham'`, {
+    config: "english",
+  });
+```
+
+## Full-text search: prefix matching while typing
+Source: https://supabase.com/docs/guides/database/full-text-search
+
+```ts
+select title from books where to_tsvector(title) @@ to_tsquery('Lit:*');
+```

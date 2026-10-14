@@ -33,6 +33,7 @@ Last checked against the dashboard: 2026-10-14
 | updated_at | timestamptz | now() | no | the app must set this to the current time on every update |
 | collection_id | uuid | — | no | foreign key → collections.id, on delete SET NULL |
 | pinned | bool | false | yes | pinned notes stay at the top of their list |
+| search_vector | tsvector | generated | — | generated from title (weight A) and content (weight B), English config; GIN index notes_search_vector_idx. Read-only: never insert or update it |
 
 ### tags
 | Column | Type | Default | Required | Notes |
@@ -67,6 +68,9 @@ Primary key: (note_id, tag_id). There is no separate id column.
   updated_at, newest first. Pinning or unpinning a note does not change updated_at.
 - Tag colours come from the fixed palette above. New tags start as gray. The app maps
   each colour name to its own Tailwind classes; the database stores only the name.
+- Search uses full-text search on notes.search_vector with .textSearch(), with prefix
+  matching (word:*) so results update while typing. Never send search_vector in an
+  insert or update; the database fills it in.
 
 ## Access
 - RLS is enabled on all four tables.
