@@ -112,7 +112,8 @@ export class DuplicateCollectionError extends Error {
   }
 }
 
-// Thrown when the chosen collection was deleted (foreign key violation).
+// Thrown when the chosen collection was deleted: either a foreign key
+// violation when assigning a note to it, or no row matched when renaming it.
 export class CollectionNotFoundError extends Error {
   constructor() {
     super("This collection no longer exists. Reload the page.");

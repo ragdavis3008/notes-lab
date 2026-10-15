@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renameCollectionAction } from "@/app/actions";
 
 // Fake Supabase client: supports only from().update().eq().select() and
@@ -9,14 +9,17 @@ const fake = vi.hoisted(() => ({
     error: { code?: string; message: string } | null;
   },
   writes: 0,
+  // The values passed to update(), one entry per write.
+  updated: [] as unknown[],
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     from: () => ({
-      update: () => ({
+      update: (values: unknown) => ({
         eq: () => ({
           select: async () => {
+            fake.updated.push(values);
             fake.writes += 1;
             return fake.reply;
           },
@@ -40,7 +43,13 @@ function form(name: string) {
 beforeEach(() => {
   fake.reply = { data: [{ id: ID }], error: null };
   fake.writes = 0;
+  fake.updated = [];
   revalidatePath.mockClear();
+});
+
+// The vitest config does not set restoreMocks, so put console.error back here.
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("renameCollectionAction", () => {
@@ -50,6 +59,7 @@ describe("renameCollectionAction", () => {
       error: "Collection name is required.",
       value: "   ",
     });
+    expect(fake.writes).toBe(0);
   });
 
   it("says the name exists when another collection has it, and keeps the typed name", async () => {
@@ -93,9 +103,10 @@ describe("renameCollectionAction", () => {
     expect(fake.writes).toBe(0);
   });
 
-  it("reports success and refreshes every page after a rename", async () => {
-    const state = await renameCollectionAction(ID, undefined, form("Work"));
+  it("saves the trimmed name, reports success and refreshes every page after a rename", async () => {
+    const state = await renameCollectionAction(ID, undefined, form("  Work  "));
     expect(state).toEqual({ saved: expect.any(Number) });
+    expect(fake.updated).toEqual([{ name: "Work" }]);
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 });
