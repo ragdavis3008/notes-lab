@@ -112,7 +112,8 @@ export class DuplicateCollectionError extends Error {
   }
 }
 
-// Thrown when the chosen collection was deleted (foreign key violation).
+// Thrown when the chosen collection was deleted: either a foreign key
+// violation when assigning a note to it, or no row matched when renaming it.
 export class CollectionNotFoundError extends Error {
   constructor() {
     super("This collection no longer exists. Reload the page.");
@@ -138,6 +139,24 @@ export async function createCollection(name: string): Promise<void> {
   // 23505 = Postgres unique_violation (collections_name_key).
   if (error?.code === "23505") throw new DuplicateCollectionError();
   if (error) throw new Error(error.message);
+}
+
+export async function renameCollection(
+  id: string,
+  name: string,
+): Promise<void> {
+  const supabase = await createClient();
+  // select() returns the changed rows, so an empty result means no row matched.
+  const { data, error } = await supabase
+    .from("collections")
+    .update({ name })
+    .eq("id", id)
+    .select("id");
+
+  // 23505 = Postgres unique_violation (another collection has this name).
+  if (error?.code === "23505") throw new DuplicateCollectionError();
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new CollectionNotFoundError();
 }
 
 export async function listNotesByCollection(

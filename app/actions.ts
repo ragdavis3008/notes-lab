@@ -11,12 +11,14 @@ import {
   DuplicateCollectionError,
   NoteNotFoundError,
   removeTagFromNote,
+  renameCollection,
   setNoteCollection,
   setNotePinned,
   setTagColor,
   TagNotFoundError,
   updateNote,
 } from "@/lib/db";
+import { parseCollectionName } from "@/lib/collection-name";
 import { isTagColor } from "@/lib/tag-colors";
 import { isUuid } from "@/lib/uuid";
 
@@ -95,11 +97,11 @@ export async function createCollectionAction(
   formData: FormData,
 ): Promise<CollectionFormState> {
   const raw = String(formData.get("name") ?? "");
-  const name = raw.trim();
-  if (!name) return { error: "Collection name is required.", value: raw };
+  const parsed = parseCollectionName(raw);
+  if ("error" in parsed) return { error: parsed.error, value: raw };
 
   try {
-    await createCollection(name);
+    await createCollection(parsed.name);
   } catch (e) {
     // A duplicate name is expected user input, not a failure worth logging.
     if (e instanceof DuplicateCollectionError) {
@@ -107,6 +109,37 @@ export async function createCollectionAction(
     }
     console.error("createCollectionAction failed:", e);
     return { error: "Could not create the collection. Please try again.", value: raw };
+  }
+  // The sidebar is on every page, so refresh the whole layout.
+  revalidatePath("/", "layout");
+  return { saved: Date.now() };
+}
+
+export async function renameCollectionAction(
+  id: string,
+  _prev: CollectionFormState,
+  formData: FormData,
+): Promise<CollectionFormState> {
+  const raw = String(formData.get("name") ?? "");
+  // Server actions are public endpoints, so check what the client sent.
+  if (!isUuid(id)) return { error: "That collection is not valid.", value: raw };
+
+  const parsed = parseCollectionName(raw);
+  if ("error" in parsed) return { error: parsed.error, value: raw };
+
+  try {
+    await renameCollection(id, parsed.name);
+  } catch (e) {
+    // A duplicate name or a deleted collection is expected, not a failure
+    // worth logging.
+    if (
+      e instanceof DuplicateCollectionError ||
+      e instanceof CollectionNotFoundError
+    ) {
+      return { error: e.message, value: raw };
+    }
+    console.error("renameCollectionAction failed:", e);
+    return { error: "Could not rename the collection. Please try again.", value: raw };
   }
   // The sidebar is on every page, so refresh the whole layout.
   revalidatePath("/", "layout");
