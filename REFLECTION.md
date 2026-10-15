@@ -1,9 +1,32 @@
 # Reflection — Notes App with Collections and Search
 
 ## What I built
+A notes app built with Next.js (App Router), TypeScript, Tailwind CSS and Supabase,
+running locally with no login. Notes can be created, edited and deleted, grouped into
+collections in the sidebar, tagged with reusable tags, filtered by ALL selected tags,
+and searched by title and content. The collection, tag and search filters combine,
+and all of them live in the URL, so a filtered view survives a reload. I built it in
+the notes-lab project from the database lessons, as one branch and pull request per
+feature: notes, collections, tags and search, followed by three optional tasks
+(pinned notes, colour-coded tags and server-side full-text search).
 
 ## Database design
+Four tables, created in the Supabase dashboard rather than from code:
+- `collections` (uuid id, name). A collection can contain many notes.
+- `notes` (int8 id, title, content, updated_at, collection_id, pinned, search_vector).
+  A note belongs to at most one collection; `collection_id` is empty for uncollected
+  notes, and deleting a collection sets it to empty instead of deleting the notes.
+- `tags` (int8 id, name, color). Names are unique regardless of capitals.
+- `note_tags`, a join table with one row per note–tag pair. Its primary key is the pair,
+  so the same tag can't be added to a note twice, and deleting a note or tag removes
+  its rows automatically.
 
+Testing the tables with real rows before building caught several setup mistakes: a
+wrong default on `collection_id` that would have made every new note fail, a missing
+default on `note_tags.created_at`, and a unique rule on tag names that hadn't saved.
+RLS is on for every table, with one "App full access" policy each because there is no
+login yet; the tables also had to be exposed in the Data API settings. All database
+access goes through one helper module, `lib/db.ts`.
 ## Third-party code review
 
 **Command:** `/code-review`, run on branch `feature/notes-crud` (PR 1) before merging.
@@ -164,3 +187,27 @@ For my tender tracker, this is how I'd search long tender descriptions quickly.
   words, and does not search tags. A search made only of filler words returns nothing.
 
 ## What I would keep or change next time
+**Keep:**
+- Adding cited references to `docs/` before each feature. After I started doing that,
+  the new-session reviews came back clean, and the agent followed official patterns
+  instead of guessing.
+- Reviewing every plan before approving. Corrections cost one message at plan stage:
+  wrong branch assumptions, a second dev server, and a missing not-found page.
+- Testing the database with real rows before building, and testing every feature in
+  the browser myself instead of trusting type checks.
+- Judging review findings instead of fixing everything: several were false alarms or
+  trade-offs I had already accepted, and one "redundant" line was actually a fix.
+- Turning repeated corrections into CLAUDE.md rules, such as editing files only with
+  the edit tools after agents tried to edit with scripts several times.
+
+**Change:**
+- Write the schema doc while creating the tables, not after. The unique rule on
+  collection names was missing from the doc, so a plan assumed duplicates were fine.
+- Check the whole CLAUDE.md when adding a rule. I left an old uuid rule next to the
+  new one, and later wrote a pinning exception that contradicted the updated_at rule.
+- Check which branch I'm on before committing; I once committed the schema doc to main.
+- Turn on GitHub branch protection for main on a team project.
+- Fix the lint setup early so `npm run lint` ignores the generated `.next` folder.
+- Run `npm run build` earlier, not only at the end. The final build showed that my
+  try/catch blocks were catching Next.js's internal prerender signal and logging it as
+  an error; `unstable_rethrow` fixed it, but I would have spotted it sooner.

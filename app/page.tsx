@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import type { SidebarSelection } from "@/components/sidebar";
@@ -107,6 +108,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
     if (search) emptyMessage = `No notes match your search "${search}".`;
     tagsByNote = await listTagsByNoteIds(notes.map((n) => n.id));
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Loading notes failed:", e);
     return (
       <p className="text-red-600">

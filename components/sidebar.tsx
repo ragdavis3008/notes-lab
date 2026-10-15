@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { NewCollectionForm } from "@/components/new-collection-form";
 import { TagColorPicker } from "@/components/tag-color-picker";
@@ -96,6 +97,7 @@ async function Groups({
   try {
     [collections, notes] = await Promise.all([listCollections(), listNotes()]);
   } catch (e) {
+    unstable_rethrow(e);
     return (
       <p className="px-3 text-red-600">
         Error loading collections: {e instanceof Error ? e.message : "unknown error"}
@@ -221,6 +223,7 @@ async function Nav({
   try {
     tags = await listTags();
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Sidebar tags failed:", e);
     loadError = e instanceof Error ? e.message : "unknown error";
   }
