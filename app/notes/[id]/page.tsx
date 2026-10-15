@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { updateNoteAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
@@ -37,6 +38,7 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
       listTagsForNote(id),
     ]);
   } catch (e) {
+    unstable_rethrow(e);
     return (
       <p className="text-red-600">
         Error loading note: {e instanceof Error ? e.message : "unknown error"}
