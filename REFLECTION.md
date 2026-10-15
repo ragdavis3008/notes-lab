@@ -208,3 +208,6 @@ For my tender tracker, this is how I'd search long tender descriptions quickly.
 - Check which branch I'm on before committing; I once committed the schema doc to main.
 - Turn on GitHub branch protection for main on a team project.
 - Fix the lint setup early so `npm run lint` ignores the generated `.next` folder.
+- Run `npm run build` earlier, not only at the end. The final build showed that my
+  try/catch blocks were catching Next.js's internal prerender signal and logging it as
+  an error; `unstable_rethrow` fixed it, but I would have spotted it sooner.
