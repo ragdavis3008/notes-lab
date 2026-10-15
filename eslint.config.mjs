@@ -13,7 +13,7 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   // Build output and dependencies are not our source (see docs/eslint-reference.md).
-  globalIgnores([".next/**", "node_modules/**", "out/**", "build/**"]),
+  globalIgnores([".next/**", "node_modules/**", "out/**", "build/**", "next-env.d.ts"]),
 ];
 
 export default eslintConfig;

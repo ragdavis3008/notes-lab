@@ -40,4 +40,5 @@ Next.js 16).
 - `node_modules/**` is also ignored by ESLint by default; it is listed
   explicitly here so the intent is visible.
 - `globalIgnores` and `defineConfig` come from `eslint/config`, available in the
-  installed ESLint 9.39.5.
+  installed ESLint 9.39.5. It needs ESLint 9.22 or newer; `package.json` only says
+  `^9`, and the lockfile pins 9.39.5.
