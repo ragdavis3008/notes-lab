@@ -140,6 +140,24 @@ export async function createCollection(name: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function renameCollection(
+  id: string,
+  name: string,
+): Promise<void> {
+  const supabase = await createClient();
+  // select() returns the changed rows, so an empty result means no row matched.
+  const { data, error } = await supabase
+    .from("collections")
+    .update({ name })
+    .eq("id", id)
+    .select("id");
+
+  // 23505 = Postgres unique_violation (another collection has this name).
+  if (error?.code === "23505") throw new DuplicateCollectionError();
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new CollectionNotFoundError();
+}
+
 export async function listNotesByCollection(
   collectionId: string,
   search?: string,

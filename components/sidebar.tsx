@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
-import { Suspense } from "react";
+import { type ReactNode, Suspense } from "react";
 import { NewCollectionForm } from "@/components/new-collection-form";
+import { RenameCollectionButton } from "@/components/rename-collection-button";
 import { TagColorPicker } from "@/components/tag-color-picker";
 import { TagDot } from "@/components/tag-pill";
 import { listCollections, listNotes, listTags } from "@/lib/db";
@@ -51,6 +52,7 @@ function Group({
   open,
   notes,
   empty,
+  action,
 }: {
   label: string;
   href: string;
@@ -58,27 +60,37 @@ function Group({
   open: boolean;
   notes: Note[];
   empty: string;
+  // Control shown beside the label. It sits outside the <summary>, so using
+  // it never toggles the group.
+  action?: ReactNode;
 }) {
   return (
-    <details open={open} className="group">
-      <summary className="flex cursor-pointer list-none items-center gap-1">
-        <span
-          aria-hidden
-          className="w-4 text-center text-foreground/50 transition-transform group-open:rotate-90"
+    <div className="relative">
+      <details open={open} className="group">
+        {/* pr-16 keeps the label clear of the Rename button, which is as tall as
+            this row. See components/rename-collection-button.tsx. */}
+        <summary
+          className={`flex cursor-pointer list-none items-center gap-1 ${action ? "pr-16" : ""}`}
         >
-          ›
-        </span>
-        <Link
-          href={href}
-          className={`${linkBase} min-w-0 flex-1 truncate ${selected ? activeLink : ""}`}
-        >
-          {label}
-        </Link>
-      </summary>
-      <div className="ml-4">
-        <NoteLinks notes={notes} empty={empty} />
-      </div>
-    </details>
+          <span
+            aria-hidden
+            className="w-4 text-center text-foreground/50 transition-transform group-open:rotate-90"
+          >
+            ›
+          </span>
+          <Link
+            href={href}
+            className={`${linkBase} min-w-0 flex-1 truncate ${selected ? activeLink : ""}`}
+          >
+            {label}
+          </Link>
+        </summary>
+        <div className="ml-4">
+          <NoteLinks notes={notes} empty={empty} />
+        </div>
+      </details>
+      {action}
+    </div>
   );
 }
 
@@ -128,6 +140,7 @@ async function Groups({
             open={selected === c.id || holdsActiveNote(inCollection)}
             notes={inCollection}
             empty="No notes in this collection yet"
+            action={<RenameCollectionButton id={c.id} name={c.name} />}
           />
         );
       })}
