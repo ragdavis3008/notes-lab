@@ -211,3 +211,59 @@ For my tender tracker, this is how I'd search long tender descriptions quickly.
 - Run `npm run build` earlier, not only at the end. The final build showed that my
   try/catch blocks were catching Next.js's internal prerender signal and logging it as
   an error; `unstable_rethrow` fixed it, but I would have spotted it sooner.
+- Review a branch before merging it, not after. I merged feature/tests first and have
+  not reviewed it since, so any problems in it are now on main.
+
+## Rename a collection (TDD)
+
+**Rename a collection (test-first, branch feature/rename-collection).** I built this
+with the tdd skill, one small test at a time: write a failing test (red), write just
+enough code to pass it (green), then tidy up (refactor). Working in tiny steps kept each
+change easy to review, and the tests ended up describing the feature in plain terms:
+blank names, duplicate names, a collection deleted elsewhere, and an invalid id.
+
+**The bug cycle 5 caught.** The test faked a database error (code 08006, "connection
+lost") and expected the message "Could not rename the collection. Please try again.",
+the typed name kept, and no page refresh. It went red because, after the earlier cycles,
+any unexpected error fell through the catch and the action returned "saved". So a failed
+save was reported to the user as a success, and the form would have closed as if the
+rename worked. Claude spotted the gap and wrote the test to prove it. I would not have
+found this by clicking through the app, because the failure is rare. The test now guards
+the fix.
+
+**Characterization tests before refactoring.** The rename action needed the same name
+checking as `createCollectionAction`, so I moved that into `lib/collection-name.ts`.
+Before touching the existing action, I wrote tests that pinned down what it already did
+(blank name, duplicate name, success). They passed on the old code, so after the refactor
+I could trust that they still passed because the behaviour was unchanged and not because
+I had changed the tests.
+
+**What the two reviews found.**
+1. The first review was /code-review in the same session. It found one real issue:
+   pressing Cancel or Escape while a save was pending closed the form and hid any server
+   error. I fixed it (Cancel is disabled and Escape is ignored while saving) and rechecked
+   it in the browser. Two findings did not hold up. "Typed text lost after a rejected
+   submit" was wrong, because my browser check 5 showed WORK stayed in the field. "The
+   `router.refresh()` is redundant" was kept on purpose, to match `NewCollectionForm`. I
+   left the unchanged-name write and the shared create/rename flow as they are.
+2. The second review was a fresh session (/clear) on `git diff main...HEAD`. It found no
+   rule breaks against CLAUDE.md or the schema doc. I fixed the weak tests: the blank-name
+   test now checks nothing was written, the success test checks that `"  Work  "` reaches
+   the database as `"Work"`, the `console.error` spy is restored after each test, and an
+   out-of-date comment on `CollectionNotFoundError` is corrected. For renaming with only a
+   capital change, I tested it in the browser: Work2 to work2 saved without a duplicate
+   error. I skipped on purpose: a maximum name length, focus returning to the Rename
+   button, the input still being editable while saving, layout fragility, and component
+   tests. These are edge cases or polish, and the create form has some of the same gaps.
+
+**Test steps that assumed things the app doesn't have.** Claude's browser test plan for
+slice 4 included a delete-collection button and a dark mode toggle, and the app has
+neither. I did not skip those steps. For "deleted elsewhere" I deleted a test collection
+in the Supabase Table Editor instead of using a second tab. For dark mode I used Chrome
+DevTools to emulate `prefers-color-scheme: dark`. All 8 checks passed. The lesson stays:
+check a test plan against the real app before running it.
+
+**Merged before reviewing.** I merged feature/tests into main before reviewing it, and it
+has still not been reviewed. That was the wrong order: the review should happen first, so
+problems get fixed on the branch. This time I reviewed feature/rename-collection twice
+before merging it.
