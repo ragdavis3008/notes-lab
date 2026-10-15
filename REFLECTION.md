@@ -263,7 +263,13 @@ in the Supabase Table Editor instead of using a second tab. For dark mode I used
 DevTools to emulate `prefers-color-scheme: dark`. All 8 checks passed. The lesson stays:
 check a test plan against the real app before running it.
 
-**Merged before reviewing.** I merged feature/tests into main before reviewing it, and it
-has still not been reviewed. That was the wrong order: the review should happen first, so
-problems get fixed on the branch. This time I reviewed feature/rename-collection twice
-before merging it.
+**Merged before reviewing.** I merged feature/tests into main before reviewing it. That was
+the wrong order: the review should happen first, so problems get fixed on the branch. I
+reviewed it afterwards in a fresh session. It found no bugs, but it did find config drift:
+an unexplained @types/node bump, outdated notes in the docs and a missing test:run script.
+Running npm run lint during that check showed 20142 problems. Almost all came from the
+unignored .next/ build folder, plus one require() in tailwind.config.ts. That already
+existed before PR #9, and I had never noticed because I wasn't running lint. I fixed all
+of it on chore/test-config (lint is now at 0 problems) and ran a /code-review before
+merging. The lesson: run npm run lint and npm run build as part of my checks before every
+merge, not just the tests.
