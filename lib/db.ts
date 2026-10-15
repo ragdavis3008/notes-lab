@@ -1,3 +1,4 @@
+import { toTsQuery } from "@/lib/search-query";
 import { createClient } from "@/lib/supabase/server";
 import type { TagColor } from "@/lib/tag-colors";
 import type { Collection, Note, NoteTag, Tag } from "@/lib/types";
@@ -21,21 +22,6 @@ export class TagNotFoundError extends Error {
 // Must be updated whenever a column is added to the Note type.
 const NOTE_COLUMNS =
   "id, created_at, title, content, updated_at, collection_id, pinned";
-
-// Turns typed text into a safe to_tsquery string: "meet notes" -> "meet:* & notes:*".
-// Only letters, combining marks and digits are kept; everything else (including
-// every tsquery operator such as & | ! ( ) < > : * ' and backslash) just separates
-// words, so the text cannot change the query or cause a syntax error. Every word
-// must match (&) and matches as a prefix (:*), so results narrow while typing.
-// Returns null when no words are left (for example "???"): nothing to search for.
-function toTsQuery(search: string): string | null {
-  const words = search
-    .toLowerCase()
-    .split(/[^\p{L}\p{M}\p{N}]+/u)
-    .filter(Boolean);
-  if (words.length === 0) return null;
-  return words.map((w) => `${w}:*`).join(" & ");
-}
 
 // Adds the full-text search filter to a notes query. Empty or missing `search`
 // means no search: the query is returned unchanged. Returns null when the text
