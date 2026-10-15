@@ -66,7 +66,8 @@ function RenameForm({
     <form
       action={formAction}
       onKeyDown={(e) => {
-        if (e.key === "Escape") onClose();
+        // Closing mid-save would hide an error from the server.
+        if (e.key === "Escape" && !pending) onClose();
       }}
       className="absolute inset-x-0 top-0 z-10 flex flex-col gap-1 rounded-md border border-foreground/20 bg-background p-1 shadow-sm"
     >
@@ -92,7 +93,8 @@ function RenameForm({
         <button
           type="button"
           onClick={onClose}
-          className="px-1 text-xs text-foreground/70 hover:underline"
+          disabled={pending}
+          className="px-1 text-xs text-foreground/70 hover:underline disabled:opacity-50"
         >
           Cancel
         </button>
