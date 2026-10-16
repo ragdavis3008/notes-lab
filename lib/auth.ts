@@ -17,5 +17,22 @@ export function safeNextPath(next: string | null, fallback = "/notes") {
   if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) {
     return fallback;
   }
+  // Browsers drop tabs and newlines from URLs, so "/\t/evil.example" would turn
+  // into "//evil.example". Reject any control character (and the space).
+  if (/[\x00-\x20\x7f]/.test(next)) return fallback;
+  // Check the decoded path too, so "/%2Fevil.example" and "/%5Cevil.example" fail.
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(next);
+  } catch {
+    return fallback;
+  }
+  if (
+    decoded.startsWith("//") ||
+    decoded.includes("\\") ||
+    /[\x00-\x1f\x7f]/.test(decoded)
+  ) {
+    return fallback;
+  }
   return next;
 }

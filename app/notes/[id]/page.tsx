@@ -9,7 +9,7 @@ import { NoteForm } from "@/components/note-form";
 import { NoteTags } from "@/components/note-tags";
 import { PinButton } from "@/components/pin-button";
 import { requireUser } from "@/lib/auth";
-import { getNote,listCollections, listTagsForNote } from "@/lib/db";
+import { getNote, listCollections, listTagsForNote } from "@/lib/db";
 
 function NoteNotFound() {
   return (

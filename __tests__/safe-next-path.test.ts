@@ -23,4 +23,28 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/\\evil.example")).toBe("/notes");
     expect(safeNextPath("evil.example")).toBe("/notes");
   });
+
+  it("rejects control characters that browsers strip from URLs", () => {
+    expect(safeNextPath("/\t/evil.example")).toBe("/notes");
+    expect(safeNextPath("/\n/evil.example")).toBe("/notes");
+    expect(safeNextPath("/\r/evil.example")).toBe("/notes");
+    expect(safeNextPath("/%09/evil.example")).toBe("/notes");
+    expect(safeNextPath("/%0a/evil.example")).toBe("/notes");
+    expect(safeNextPath("/notes\u0000")).toBe("/notes");
+  });
+
+  it("rejects encoded slashes and backslashes", () => {
+    expect(safeNextPath("/%2Fevil.example")).toBe("/notes");
+    expect(safeNextPath("/%2fevil.example")).toBe("/notes");
+    expect(safeNextPath("/%5Cevil.example")).toBe("/notes");
+    expect(safeNextPath("/%5cevil.example")).toBe("/notes");
+  });
+
+  it("rejects malformed percent-encoding", () => {
+    expect(safeNextPath("/%E0%A4%A")).toBe("/notes");
+  });
+
+  it("keeps harmless encoded characters", () => {
+    expect(safeNextPath("/notes?q=a%20b")).toBe("/notes?q=a%20b");
+  });
 });
