@@ -1,4 +1,4 @@
-// Helpers for the notes filter kept in the URL of "/": ?collection=...&tag=1&tag=2&q=text
+// Helpers for the notes filter kept in the URL of "/notes": ?collection=...&tag=1&tag=2&q=text
 
 // Reads the repeated `tag` param into unique, safe integer ids.
 export function parseTagIds(raw: string | string[] | undefined): number[] {
@@ -31,5 +31,5 @@ export function filterHref(
   for (const id of tagIds) params.append("tag", String(id));
   if (q) params.set("q", q);
   const query = params.toString();
-  return query ? `/?${query}` : "/";
+  return query ? `/notes?${query}` : "/notes";
 }

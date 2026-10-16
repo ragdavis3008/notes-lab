@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { type ReactNode, Suspense } from "react";
+import { AuthButton } from "@/components/auth-button";
 import { NewCollectionForm } from "@/components/new-collection-form";
 import { RenameCollectionButton } from "@/components/rename-collection-button";
 import { TagColorPicker } from "@/components/tag-color-picker";
 import { TagDot } from "@/components/tag-pill";
+import { requireUser } from "@/lib/auth";
 import { listCollections, listNotes, listTags } from "@/lib/db";
 import { filterHref } from "@/lib/filter-url";
 import type { Note, Tag } from "@/lib/types";
@@ -224,6 +226,7 @@ async function Nav({
   searchText = Promise.resolve(""),
   activeNote,
 }: Props) {
+  await requireUser();
   const [selected, urlTagIds, search] = await Promise.all([
     selectedPromise,
     selectedTags,
@@ -279,12 +282,17 @@ async function Nav({
 export function Sidebar(props: Props) {
   return (
     <aside className="w-full shrink-0 border-b border-foreground/10 p-4 sm:w-64 sm:border-b-0 sm:border-r">
-      <Link href="/" className="mb-4 block text-lg font-semibold sm:mb-6">
+      <Link href="/notes" className="mb-4 block text-lg font-semibold sm:mb-6">
         Notes
       </Link>
       <Suspense fallback={<p className="px-3 text-sm">Loading...</p>}>
         <Nav {...props} />
       </Suspense>
+      <div className="mt-6 border-t border-foreground/10 pt-4">
+        <Suspense fallback={null}>
+          <AuthButton />
+        </Suspense>
+      </div>
     </aside>
   );
 }

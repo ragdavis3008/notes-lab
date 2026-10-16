@@ -57,7 +57,7 @@ export function NoteForm({
         >
           {pending ? "Saving..." : submitLabel}
         </button>
-        <Link href="/" className="text-sm text-foreground/70 hover:underline">
+        <Link href="/notes" className="text-sm text-foreground/70 hover:underline">
           Cancel
         </Link>
       </div>

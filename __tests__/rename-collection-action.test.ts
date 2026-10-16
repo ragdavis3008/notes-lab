@@ -32,6 +32,9 @@ vi.mock("@/lib/supabase/server", () => ({
 const revalidatePath = vi.hoisted(() => vi.fn());
 vi.mock("next/cache", () => ({ revalidatePath }));
 
+// Pretend someone is signed in; the real check asks the Supabase Auth server.
+vi.mock("@/lib/auth", () => ({ requireUser: async () => ({ id: "user-1" }) }));
+
 const ID = "123e4567-e89b-12d3-a456-426614174000";
 
 function form(name: string) {

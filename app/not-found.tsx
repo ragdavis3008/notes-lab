@@ -8,7 +8,7 @@ export default function NotFound() {
       <p className="mb-4 text-foreground/70">
         We couldn&apos;t find the page you were looking for.
       </p>
-      <Link href="/" className="text-sm underline">
+      <Link href="/notes" className="text-sm underline">
         Back to all notes
       </Link>
     </AppShell>

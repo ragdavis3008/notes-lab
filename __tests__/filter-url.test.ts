@@ -88,32 +88,32 @@ describe("normalizeSearch", () => {
 });
 
 describe("filterHref", () => {
-  it("links to the bare home page when nothing is filtered", () => {
-    expect(filterHref("all", [])).toBe("/");
-    expect(filterHref("all", [], "")).toBe("/");
+  it("links to the bare notes page when nothing is filtered", () => {
+    expect(filterHref("all", [])).toBe("/notes");
+    expect(filterHref("all", [], "")).toBe("/notes");
   });
 
   it("adds a collection id", () => {
     const id = "123e4567-e89b-12d3-a456-426614174000";
-    expect(filterHref(id, [])).toBe(`/?collection=${id}`);
+    expect(filterHref(id, [])).toBe(`/notes?collection=${id}`);
   });
 
   it("supports the uncollected filter", () => {
-    expect(filterHref("uncollected", [])).toBe("/?collection=uncollected");
+    expect(filterHref("uncollected", [])).toBe("/notes?collection=uncollected");
   });
 
   it("repeats the tag param for each tag", () => {
-    expect(filterHref("all", [1, 2, 3])).toBe("/?tag=1&tag=2&tag=3");
+    expect(filterHref("all", [1, 2, 3])).toBe("/notes?tag=1&tag=2&tag=3");
   });
 
   it("adds search text, encoding special characters", () => {
-    expect(filterHref("all", [], "hello world")).toBe("/?q=hello+world");
-    expect(filterHref("all", [], "a&b#c")).toBe("/?q=a%26b%23c");
+    expect(filterHref("all", [], "hello world")).toBe("/notes?q=hello+world");
+    expect(filterHref("all", [], "a&b#c")).toBe("/notes?q=a%26b%23c");
   });
 
   it("combines collection, tags and search in that order", () => {
     expect(filterHref("uncollected", [4, 5], "todo")).toBe(
-      "/?collection=uncollected&tag=4&tag=5&q=todo",
+      "/notes?collection=uncollected&tag=4&tag=5&q=todo",
     );
   });
 
