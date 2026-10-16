@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
 import {
   addTagToNote,
   CollectionNotFoundError,
@@ -49,11 +50,13 @@ function errorMessage(e: unknown, fallback: string) {
     : fallback;
 }
 
+// Server actions are public endpoints, so each one starts with requireUser().
 // redirect() works by throwing, so it must stay outside the try/catch blocks.
 export async function createNoteAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  await requireUser();
   const { title, content, values } = readFields(formData);
   if (!title) return { error: "Title is required.", values };
 
@@ -64,7 +67,7 @@ export async function createNoteAction(
     return { error: errorMessage(e, "Could not save the note. Please try again."), values };
   }
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/notes");
 }
 
 export async function updateNoteAction(
@@ -72,6 +75,7 @@ export async function updateNoteAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  await requireUser();
   const { title, content, values } = readFields(formData);
   if (!title) return { error: "Title is required.", values };
 
@@ -82,7 +86,7 @@ export async function updateNoteAction(
     return { error: errorMessage(e, "Could not save the note. Please try again."), values };
   }
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/notes");
 }
 
 // `saved` changes on every success so the form knows to clear its input.
@@ -96,6 +100,7 @@ export async function createCollectionAction(
   _prev: CollectionFormState,
   formData: FormData,
 ): Promise<CollectionFormState> {
+  await requireUser();
   const raw = String(formData.get("name") ?? "");
   const parsed = parseCollectionName(raw);
   if ("error" in parsed) return { error: parsed.error, value: raw };
@@ -120,6 +125,7 @@ export async function renameCollectionAction(
   _prev: CollectionFormState,
   formData: FormData,
 ): Promise<CollectionFormState> {
+  await requireUser();
   const raw = String(formData.get("name") ?? "");
   // Server actions are public endpoints, so check what the client sent.
   if (!isUuid(id)) return { error: "That collection is not valid.", value: raw };
@@ -151,6 +157,7 @@ export async function setNoteCollectionAction(
   noteId: number,
   collectionId: string,
 ): Promise<SetCollectionState> {
+  await requireUser();
   if (collectionId !== "" && !isUuid(collectionId)) {
     return { error: "That collection is not valid." };
   }
@@ -170,6 +177,7 @@ export async function setNotePinnedAction(
   noteId: number,
   pinned: boolean,
 ): Promise<PinState> {
+  await requireUser();
   // Server actions are public endpoints, so check what the client sent.
   if (!Number.isSafeInteger(noteId) || typeof pinned !== "boolean") {
     return { error: "Could not change the pin. Please try again." };
@@ -191,6 +199,7 @@ export async function addTagToNoteAction(
   noteId: number,
   name: string,
 ): Promise<TagState> {
+  await requireUser();
   if (name.trim() === "") return { error: "Tag name is required." };
 
   try {
@@ -207,6 +216,7 @@ export async function removeTagFromNoteAction(
   noteId: number,
   tagId: number,
 ): Promise<TagState> {
+  await requireUser();
   try {
     await removeTagFromNote(noteId, tagId);
   } catch (e) {
@@ -223,6 +233,7 @@ export async function setTagColorAction(
   tagId: number,
   color: string,
 ): Promise<TagColorState> {
+  await requireUser();
   // Server actions are public endpoints, so check what the client sent.
   if (!Number.isSafeInteger(tagId) || !isTagColor(color)) {
     return { error: "That colour is not valid." };
@@ -238,6 +249,7 @@ export async function setTagColorAction(
 }
 
 export async function deleteNoteAction(id: number): Promise<DeleteState> {
+  await requireUser();
   try {
     await deleteNote(id);
   } catch (e) {
@@ -245,5 +257,5 @@ export async function deleteNoteAction(id: number): Promise<DeleteState> {
     return { error: errorMessage(e, "Could not delete the note. Please try again.") };
   }
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/notes");
 }

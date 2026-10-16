@@ -8,7 +8,8 @@ import { DeleteNoteButton } from "@/components/delete-note-button";
 import { NoteForm } from "@/components/note-form";
 import { NoteTags } from "@/components/note-tags";
 import { PinButton } from "@/components/pin-button";
-import { getNote, listCollections, listTagsForNote } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
+import { getNote,listCollections, listTagsForNote } from "@/lib/db";
 
 function NoteNotFound() {
   return (
@@ -17,7 +18,7 @@ function NoteNotFound() {
       <p className="mb-4 text-foreground/70">
         This note doesn&apos;t exist. It may have been deleted.
       </p>
-      <Link href="/" className="text-sm underline">
+      <Link href="/notes" className="text-sm underline">
         Back to all notes
       </Link>
     </div>
@@ -25,6 +26,8 @@ function NoteNotFound() {
 }
 
 async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
+  // Also checked here: a layout check does not re-run on every navigation.
+  await requireUser();
   const { id: rawId } = await params;
   if (!/^\d+$/.test(rawId)) return <NoteNotFound />;
   const id = Number(rawId);

@@ -6,7 +6,7 @@ import { MAX_SEARCH_LENGTH, normalizeSearch } from "@/lib/filter-url";
 
 const DEBOUNCE_MS = 300;
 
-// Search box for "/". The text lives in ?q= so it survives a reload. Only `q`
+// Search box for "/notes". The text lives in ?q= so it survives a reload. Only `q`
 // is changed; collection and tag params stay as they are.
 export function SearchBox() {
   const router = useRouter();
@@ -48,7 +48,7 @@ export function SearchBox() {
     if (q) params.set("q", q);
     else params.delete("q");
     const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
+    router.replace(query ? `/notes?${query}` : "/notes", { scroll: false });
   }
 
   // Wait until typing stops before updating the URL (and so the query).

@@ -4,7 +4,9 @@
 A notes app with collections, tags and search.
 Stack: Next.js (App Router), TypeScript, Tailwind CSS, Supabase via the `supabase-js` client.
 Built on the official Supabase + Next.js starter. Runs locally with `npm run dev`.
-No authentication and no deployment in this project.
+- App overview: @docs/app-brief.md
+No deployment in this project. Authentication is being added with Supabase Auth.
+
 
 ## Hard rules
 - Use the `supabase-js` client only. Do NOT use the Supabase MCP server.
@@ -13,9 +15,6 @@ No authentication and no deployment in this project.
   schema change, stop and ask me.
 - The old `notes` table from the lessons has been replaced. Existing code that used it
   may be rewritten or removed.
-- No authentication. The notes pages must work without logging in. Do not build on the
-  starter's auth pages. If the session check in `lib/supabase/proxy.ts` redirects
-  logged-out visitors away from notes pages, tell me before changing it.
 - No new npm packages without asking me first.
 
 ## Supabase connection
@@ -59,3 +58,8 @@ No authentication and no deployment in this project.
 - Tag names are trimmed and saved in lowercase.
 - Set `notes.updated_at` to the current time whenever a note's title, content or
   collection changes. Pinning or unpinning a note does not change `updated_at`.
+
+## Authentication rules
+- Use Supabase Auth for all sign-in and session handling. Never build custom auth or store passwords anywhere.
+- Every page under /notes requires a signed-in user. Verify this on the server with the Supabase Auth server, never only the browser session. If the user is not signed in, redirect to /auth/login.
+- After sign-out, redirect to /auth/login.

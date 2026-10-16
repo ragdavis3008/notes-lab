@@ -22,6 +22,10 @@ vi.mock("@/lib/supabase/server", () => ({
 const revalidatePath = vi.hoisted(() => vi.fn());
 vi.mock("next/cache", () => ({ revalidatePath }));
 
+// Signed in by default; a test can make it throw like redirect("/auth/login").
+const requireUser = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/auth", () => ({ requireUser }));
+
 function form(name: string) {
   const data = new FormData();
   data.set("name", name);
@@ -32,6 +36,18 @@ beforeEach(() => {
   fake.reply = { error: null };
   fake.inserted = [];
   revalidatePath.mockClear();
+  requireUser.mockReset();
+  requireUser.mockResolvedValue({ id: "user-1" });
+});
+
+describe("createCollectionAction when signed out", () => {
+  it("redirects to login and saves nothing", async () => {
+    requireUser.mockRejectedValue(new Error("NEXT_REDIRECT"));
+    await expect(
+      createCollectionAction(undefined, form("Work")),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(fake.inserted).toEqual([]);
+  });
 });
 
 describe("createCollectionAction", () => {

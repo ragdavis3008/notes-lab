@@ -47,12 +47,10 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
+  // Only "/" (it just redirects to /notes) and the /auth pages are public.
   if (
-    request.nextUrl.pathname !== "/" &&
-    request.nextUrl.pathname !== "/notes" &&
-    !request.nextUrl.pathname.startsWith("/notes/") &&
     !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
+    request.nextUrl.pathname !== "/" &&
     !request.nextUrl.pathname.startsWith("/auth")
   ) {
     // no user, potentially respond by redirecting the user to the login page
