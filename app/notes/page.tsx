@@ -178,7 +178,7 @@ function NotesList({
             href={`/notes/${note.id}`}
             className="block p-4 pr-16 outline-none after:absolute after:inset-0 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-foreground"
           >
-            <h2 className="font-medium">
+            <h2 className="break-words font-medium">
               {note.pinned && (
                 <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs font-normal text-foreground/70">
                   <PinIcon filled />
@@ -188,7 +188,7 @@ function NotesList({
               {note.title}
             </h2>
             {note.content && (
-              <p className="mt-1 whitespace-pre-line text-sm text-foreground/70">
+              <p className="mt-1 whitespace-pre-line break-words text-sm text-foreground/70">
                 {preview(note.content)}
               </p>
             )}
