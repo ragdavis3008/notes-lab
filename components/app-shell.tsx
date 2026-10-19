@@ -21,7 +21,11 @@ export function AppShell({
         searchText={searchText}
         activeNote={activeNote}
       />
-      <main className="min-w-0 flex-1 p-6">
+      {/* On a phone the sidebar stacks above the content. On a note page the note
+          goes first, so opening a note from the sidebar does not leave it off-screen. */}
+      <main
+        className={`min-w-0 flex-1 p-6 ${activeNote ? "order-first sm:order-none" : ""}`}
+      >
         <div className="mx-auto max-w-3xl">{children}</div>
       </main>
     </div>
