@@ -38,10 +38,14 @@ async function deleteFromList(page: Page, title: string) {
 // Removes whatever is left of the notes this run created, even after a failure.
 test.afterEach(async ({ page }) => {
   await page.goto('/notes');
+  // The list streams in after the page loads. Counting buttons before it has
+  // rendered finds none and skips the cleanup, so wait for the list heading first.
+  await expect(page.getByRole('heading', { level: 1, name: 'All notes' })).toBeVisible();
   for (const title of created) {
     const button = page.getByRole('button', { name: `Delete note ${title}` });
-    while ((await button.count()) > 0) {
+    if ((await button.count()) > 0) {
       await deleteFromList(page, title);
+      await expect(button).toHaveCount(0);
     }
   }
   created.length = 0;
