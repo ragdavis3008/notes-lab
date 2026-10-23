@@ -108,7 +108,7 @@ function Group({
             href={href}
             className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${selected ? activeLink : ""}`}
           >
-            <span className="min-w-0 flex-1 truncate font-bold">{label}</span>
+            <span className="min-w-0 flex-1 truncate">{label}</span>
             <span className="shrink-0 text-xs text-foreground/50">{count}</span>
           </Link>
         </summary>
