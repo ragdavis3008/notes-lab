@@ -5,10 +5,17 @@ import { LogoutButton } from "./logout-button";
 
 export async function AuthButton() {
   const user = await getCurrentClaims();
+  const email = typeof user?.email === "string" ? user.email : "";
 
   return user ? (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="min-w-0 break-all">Hey, {user.email}!</span>
+    <div className="flex items-center gap-2 text-sm">
+      <span
+        aria-hidden
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold uppercase text-primary-foreground"
+      >
+        {email.charAt(0)}
+      </span>
+      <span className="min-w-0 truncate text-xs text-foreground/60">{email}</span>
       <LogoutButton />
     </div>
   ) : (

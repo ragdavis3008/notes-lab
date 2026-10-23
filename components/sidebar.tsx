@@ -23,9 +23,10 @@ type Props = {
   activeNote?: Promise<{ id: string }>;
 };
 
-const linkBase = "rounded-md px-3 py-2 hover:bg-foreground/5";
-const activeLink = "bg-foreground/10 font-medium";
-const headingClass = "mt-3 px-3 text-xs font-bold uppercase text-foreground/50";
+// px-3 py-2 with text-sm is 36px tall: the ⋯ button in collection-menu.tsx (h-9) matches it.
+const linkBase = "rounded-lg px-3 py-2 hover:bg-foreground/5";
+const activeLink = "bg-primary/10 font-semibold text-primary hover:bg-primary/10";
+const headingClass = "mt-4 px-3 text-base font-bold";
 
 function NoteLinks({
   notes,
@@ -47,7 +48,7 @@ function NoteLinks({
           <li key={note.id}>
             <Link
               href={`/notes/${note.id}`}
-              className="flex items-center gap-2 rounded-md px-3 py-1 text-foreground/80 hover:bg-foreground/5"
+              className="flex items-center gap-2 rounded-lg px-3 py-1 text-foreground/80 hover:bg-foreground/5"
             >
               <span className="min-w-0 flex-1 truncate">{note.title}</span>
               {tags.length > 0 && (
@@ -99,7 +100,7 @@ function Group({
         >
           <span
             aria-hidden
-            className="w-4 text-center text-foreground/50 transition-transform group-open:rotate-90"
+            className="w-4 text-center text-primary/70 transition-transform group-open:rotate-90"
           >
             ›
           </span>
@@ -107,7 +108,7 @@ function Group({
             href={href}
             className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${selected ? activeLink : ""}`}
           >
-            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <span className="min-w-0 flex-1 truncate font-bold">{label}</span>
             <span className="shrink-0 text-xs text-foreground/50">{count}</span>
           </Link>
         </summary>
@@ -243,7 +244,7 @@ function TagList({
       {tagIds.length > 0 && (
         <Link
           href={filterHref(selected, [], search)}
-          className={`${linkBase} underline`}
+          className={`${linkBase} text-primary hover:underline`}
         >
           Clear tag filter
         </Link>
@@ -303,7 +304,7 @@ async function Nav({
     <nav className="flex flex-col gap-1 text-sm">
       <Link
         href="/notes/new"
-        className="rounded-md px-3 py-2 text-foreground/70 hover:bg-foreground/5"
+        className="rounded-lg px-3 py-2 font-medium text-primary hover:bg-primary/10"
       >
         + New note
       </Link>
@@ -313,9 +314,7 @@ async function Nav({
       >
         All notes
       </Link>
-      <p className={headingClass}>
-        Collections{loadError === undefined ? ` ${collections.length}` : ""}
-      </p>
+      <p className={headingClass}>Collections</p>
       <Groups
         selected={selected}
         tagIds={tagIds}
@@ -327,9 +326,7 @@ async function Nav({
         loadError={loadError}
       />
       <NewCollectionForm />
-      <p className={headingClass}>
-        Tags{loadError === undefined ? ` ${tags.length}` : ""}
-      </p>
+      <p className={headingClass}>Tags</p>
       <TagList
         selected={selected}
         tagIds={tagIds}
@@ -344,13 +341,14 @@ async function Nav({
 
 export function Sidebar(props: Props) {
   return (
-    <aside className="w-full shrink-0 border-b border-foreground/10 p-4 sm:w-64 sm:border-b-0 sm:border-r">
-      <Link href="/notes" className="mb-4 block text-lg font-semibold sm:mb-6">
+    // The <aside> (colour, width, slide-out on a phone) is in components/app-frame.tsx.
+    <div>
+      <Link href="/notes" className="mb-4 block px-3 text-2xl font-bold">
         Notes
       </Link>
       <Suspense fallback={<p className="px-3 text-sm">Loading...</p>}>
         <Nav {...props} />
       </Suspense>
-    </aside>
+    </div>
   );
 }

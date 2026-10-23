@@ -38,7 +38,7 @@ export function RenameForm({
         // Closing mid-save would hide an error from the server.
         if (e.key === "Escape" && !pending) onClose();
       }}
-      className="absolute inset-x-0 top-0 z-10 flex flex-col gap-1 rounded-md border border-foreground/20 bg-background p-1 shadow-sm"
+      className="absolute inset-x-0 top-0 z-10 flex flex-col gap-1 rounded-xl bg-card p-1.5 shadow-lg ring-1 ring-foreground/5"
     >
       <div className="flex items-center gap-1">
         <label htmlFor={`rename-${id}`} className="sr-only">
@@ -50,12 +50,12 @@ export function RenameForm({
           autoFocus
           onFocus={(e) => e.currentTarget.select()}
           defaultValue={state?.value ?? name}
-          className="min-w-0 flex-1 rounded-md border border-foreground/20 bg-background px-2 py-1 text-sm"
+          className="min-w-0 flex-1 rounded-lg bg-muted px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-foreground px-2 py-1 text-xs font-medium text-background disabled:opacity-50"
+          className="rounded-lg bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
         >
           {pending ? "Saving..." : "Save"}
         </button>

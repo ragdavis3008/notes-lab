@@ -14,7 +14,6 @@ import {
   listUncollectedNotes,
 } from "@/lib/db";
 import { NoteCard } from "@/components/note-card";
-import { PinIcon } from "@/components/pin-button";
 import { SearchBox } from "@/components/search-box";
 import { TagDot } from "@/components/tag-pill";
 import { filterHref, normalizeSearch, parseTagIds } from "@/lib/filter-url";
@@ -45,7 +44,7 @@ function preview(content: string | null) {
 
 function BackToAll() {
   return (
-    <Link href="/notes" className="text-sm underline">
+    <Link href="/notes" className="text-sm text-primary hover:underline">
       Back to all notes
     </Link>
   );
@@ -88,7 +87,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       if (!collection) {
         return (
           <div>
-            <h1 className="mb-2 text-2xl font-semibold">Collection not found</h1>
+            <h1 className="mb-2 text-2xl font-bold">Collection not found</h1>
             <p className="mb-4 text-foreground/70">
               This collection doesn&apos;t exist.
             </p>
@@ -123,11 +122,11 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{title}</h1>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h1 className="min-w-0 break-words text-3xl font-bold tracking-tight">{title}</h1>
         <Link
           href="/notes/new"
-          className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
+          className="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
         >
           New note
         </Link>
@@ -137,7 +136,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
           Tags: {selectedTags.map((t) => t.name).join(", ")}{" "}
           <Link
             href={filterHref(collectionParam || "all", [], search)}
-            className="underline"
+            className="text-primary hover:underline"
           >
             Clear tag filter
           </Link>
@@ -163,63 +162,73 @@ function NotesList({
 }) {
   if (notes.length === 0) {
     return (
-      <p className="break-words rounded-md border border-dashed border-foreground/20 p-8 text-center text-foreground/70">
+      <p className="break-words rounded-2xl bg-card p-8 text-center text-foreground/70 shadow-sm">
         {emptyMessage}
       </p>
     );
   }
 
+  // The list is already sorted pinned-first, so the two groups keep their order.
+  const pinned = notes.filter((n) => n.pinned);
+  const others = notes.filter((n) => !n.pinned);
+  // "Notes" is only a heading when it needs to tell the groups apart.
+  const groups = [
+    { label: "Pinned", items: pinned },
+    { label: pinned.length > 0 ? "Notes" : "", items: others },
+  ].filter((g) => g.items.length > 0);
+
   return (
-    <ul className="flex flex-col gap-3">
-      {notes.map((note) => (
-        <NoteCard
-          key={note.id}
-          noteId={note.id}
-          noteTitle={note.title}
-          pinned={note.pinned}
-        >
-          {/* The pin, edit and delete buttons are siblings of the link: a button inside a link is invalid.
-              The ::after layer stretches the link over the whole card and draws the focus ring.
-              pr-28 keeps the text clear of those three buttons. */}
-          <Link
-            href={`/notes/${note.id}`}
-            className="block p-4 pr-28 outline-none after:absolute after:inset-0 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-foreground"
-          >
-            {/* truncate: a long title is cut off with "…" after one line. */}
-            <h2 className="truncate font-medium">
-              {note.pinned && (
-                <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs font-normal text-foreground/70">
-                  <PinIcon filled />
-                  Pinned
-                </span>
-              )}
-              {note.title}
-            </h2>
-            {note.content && (
-              <p className="mt-1 whitespace-pre-line break-words text-sm text-foreground/70">
-                {preview(note.content)}
-              </p>
-            )}
-            <div className="mt-2 flex items-center gap-2">
-              {(tagsByNote.get(note.id) ?? []).length > 0 && (
-                // relative z-10 lifts the dots above the stretched link layer,
-                // so hovering one shows the tag name.
-                <ul className="relative z-10 flex flex-wrap gap-1.5">
-                  {tagsByNote.get(note.id)!.map((tag) => (
-                    <li key={tag.id}>
-                      <TagDot color={tag.color} name={tag.name} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <span className="ml-auto shrink-0 text-xs text-foreground/60">
-                Edited {timeAgo(note.updated_at ?? note.created_at)}
-              </span>
-            </div>
-          </Link>
-        </NoteCard>
+    <div className="overflow-hidden rounded-2xl bg-card shadow-sm">
+      {groups.map((group, i) => (
+        <section key={group.label} className={i > 0 ? "border-t border-border" : ""}>
+          {group.label && (
+            <h2 className="px-4 pb-1 pt-3 text-sm font-bold">{group.label}</h2>
+          )}
+          <ul className="divide-y divide-border">
+            {group.items.map((note) => (
+              <NoteCard
+                key={note.id}
+                noteId={note.id}
+                noteTitle={note.title}
+                pinned={note.pinned}
+              >
+                {/* The pin, edit and delete buttons are siblings of the link: a button inside a link is invalid.
+                    The ::after layer stretches the link over the whole row and draws the focus ring.
+                    pr-28 keeps the text clear of those three buttons. */}
+                <Link
+                  href={`/notes/${note.id}`}
+                  className="block p-4 pr-28 outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
+                >
+                  {/* truncate: a long title is cut off with "…" after one line. */}
+                  <h3 className="truncate font-semibold">{note.title}</h3>
+                  {note.content && (
+                    <p className="mt-1 whitespace-pre-line break-words text-sm text-foreground/60">
+                      {preview(note.content)}
+                    </p>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    {(tagsByNote.get(note.id) ?? []).length > 0 && (
+                      // relative z-10 lifts the dots above the stretched link layer,
+                      // so hovering one shows the tag name.
+                      <ul className="relative z-10 flex flex-wrap gap-1.5">
+                        {tagsByNote.get(note.id)!.map((tag) => (
+                          <li key={tag.id}>
+                            <TagDot color={tag.color} name={tag.name} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <span className="ml-auto shrink-0 text-xs text-foreground/50">
+                      Edited {timeAgo(note.updated_at ?? note.created_at)}
+                    </span>
+                  </div>
+                </Link>
+              </NoteCard>
+            ))}
+          </ul>
+        </section>
       ))}
-    </ul>
+    </div>
   );
 }
 

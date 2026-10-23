@@ -97,7 +97,7 @@ export function TagColorPicker({ tagId, tagName, color }: Props) {
         aria-expanded={open}
         aria-label={`Change colour of tag ${tagName}, currently ${shownColor}`}
         title="Change colour"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md hover:bg-foreground/10 disabled:opacity-50"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg hover:bg-foreground/10 disabled:opacity-50"
       >
         <span
           aria-hidden
@@ -121,7 +121,7 @@ export function TagColorPicker({ tagId, tagName, color }: Props) {
               title={c}
               className={`h-5 w-5 rounded-full ${TAG_COLOR_CLASSES[c].dot} ${
                 c === shownColor
-                  ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                  ? "ring-2 ring-primary ring-offset-2 ring-offset-sidebar"
                   : "hover:ring-2 hover:ring-foreground/40"
               }`}
             />

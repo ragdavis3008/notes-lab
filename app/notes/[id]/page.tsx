@@ -12,11 +12,11 @@ import { getNote, listCollections, listTags, listTagsForNote } from "@/lib/db";
 function NoteNotFound() {
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold">Note not found</h1>
+      <h1 className="mb-2 text-2xl font-bold">Note not found</h1>
       <p className="mb-4 text-foreground/70">
         This note doesn&apos;t exist. It may have been deleted.
       </p>
-      <Link href="/notes" className="text-sm underline">
+      <Link href="/notes" className="text-sm text-primary hover:underline">
         Back to all notes
       </Link>
     </div>
@@ -52,7 +52,7 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <div className="mb-6 flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Edit note</h1>
+        <h1 className="text-2xl font-bold">Edit note</h1>
         <PinButton noteId={note.id} pinned={note.pinned} showLabel />
       </div>
       <NoteForm
@@ -65,7 +65,7 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
         initialTagIds={noteTags.map((t) => t.id)}
         submitLabel="Save changes"
       />
-      <div className="mt-8 border-t border-foreground/10 pt-6">
+      <div className="mt-8 border-t border-border pt-6">
         <DeleteNoteButton id={note.id} />
       </div>
     </>
@@ -78,7 +78,7 @@ export default function NotePage({
   params: Promise<{ id: string }>;
 }) {
   return (
-    <AppShell activeNote={params}>
+    <AppShell activeNote={params} backLink>
       <Suspense fallback={<p>Loading note...</p>}>
         <NoteEditor params={params} />
       </Suspense>

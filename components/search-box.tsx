@@ -1,5 +1,6 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MAX_SEARCH_LENGTH, normalizeSearch } from "@/lib/filter-url";
@@ -65,6 +66,11 @@ export function SearchBox() {
 
   return (
     <div className="relative mb-6">
+      <Search
+        aria-hidden
+        size={16}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/50"
+      />
       <input
         type="search"
         value={value}
@@ -75,13 +81,13 @@ export function SearchBox() {
         maxLength={MAX_SEARCH_LENGTH}
         placeholder="Search notes by title or content"
         aria-label="Search notes"
-        className="w-full rounded-md border border-foreground/20 bg-background px-3 py-2 pr-20 text-sm"
+        className="w-full rounded-xl bg-muted py-2 pl-9 pr-20 text-sm outline-none placeholder:text-foreground/50 focus-visible:ring-2 focus-visible:ring-ring"
       />
       {value !== "" && (
         <button
           type="button"
           onClick={clear}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-xs underline"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
         >
           Clear
         </button>

@@ -42,7 +42,7 @@ export function NoteForm({
           id="title"
           name="title"
           defaultValue={state?.values?.title ?? initialTitle}
-          className="rounded-md border border-foreground/20 bg-background px-3 py-2"
+          className="field"
         />
         {state?.error && (
           <p role="alert" className="text-sm text-red-600">
@@ -59,7 +59,7 @@ export function NoteForm({
           name="collection_id"
           value={collectionId}
           onChange={(e) => setCollectionId(e.target.value)}
-          className="rounded-md border border-foreground/20 bg-background px-3 py-2"
+          className="field"
         >
           <option value="">No collection</option>
           {collections.map((c) => (
@@ -79,18 +79,18 @@ export function NoteForm({
           name="content"
           rows={10}
           defaultValue={state?.values?.content ?? initialContent}
-          className="rounded-md border border-foreground/20 bg-background px-3 py-2"
+          className="field"
         />
       </div>
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
+          className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
         >
           {pending ? "Saving..." : submitLabel}
         </button>
-        <Link href="/notes" className="text-sm text-foreground/70 hover:underline">
+        <Link href="/notes" className="text-sm text-primary hover:underline">
           Cancel
         </Link>
       </div>

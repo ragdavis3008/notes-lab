@@ -62,7 +62,7 @@ export function TagMultiSelect({ tags, initialSelectedIds }: Props) {
           <button
             id="tags"
             type="button"
-            className="flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-foreground/20 bg-background px-3 py-2 text-left"
+            className="field flex min-h-10 items-center justify-between gap-2 text-left"
           >
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {nothingSelected && <span className="text-foreground/60">No tags</span>}
@@ -123,7 +123,7 @@ export function TagMultiSelect({ tags, initialSelectedIds }: Props) {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="mt-1 flex items-center gap-3">
+      <div className="mt-1 flex items-center gap-2">
         <input
           aria-label="New tag name"
           value={draft}
@@ -136,12 +136,12 @@ export function TagMultiSelect({ tags, initialSelectedIds }: Props) {
             }
           }}
           placeholder="Add a tag"
-          className="rounded-md border border-foreground/20 bg-background px-3 py-2"
+          className="field flex-1"
         />
         <button
           type="button"
           onClick={addDraft}
-          className="rounded-md border border-foreground/20 px-3 py-2 text-sm"
+          className="shrink-0 rounded-full bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/20"
         >
           Add
         </button>

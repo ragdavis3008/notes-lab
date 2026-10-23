@@ -34,7 +34,7 @@ export function ConfirmPanel({
           autoFocus
           disabled={pending}
           onClick={onCancel}
-          className="rounded-md border border-foreground/20 px-3 py-1 hover:bg-foreground/5 disabled:opacity-50"
+          className="rounded-full bg-muted px-4 py-1 hover:bg-foreground/10 disabled:opacity-50"
         >
           Cancel
         </button>
@@ -42,7 +42,7 @@ export function ConfirmPanel({
           type="button"
           disabled={pending}
           onClick={onConfirm}
-          className="rounded-md bg-red-600 px-3 py-1 text-white disabled:opacity-50"
+          className="rounded-full bg-red-600 px-4 py-1 text-white disabled:opacity-50"
         >
           {pending ? "Deleting..." : "Delete"}
         </button>

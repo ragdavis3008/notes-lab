@@ -12,7 +12,7 @@ export function NewCollectionForm() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md px-3 py-2 text-left text-sm text-foreground/70 hover:bg-foreground/5"
+        className="rounded-lg px-3 py-2 text-left text-sm font-medium text-primary hover:bg-primary/10"
       >
         + New collection
       </button>
@@ -50,7 +50,7 @@ function CollectionNameForm({ onClose }: { onClose: () => void }) {
         placeholder="Collection name"
         autoFocus
         defaultValue={state?.value ?? ""}
-        className="rounded-md border border-foreground/20 bg-background px-2 py-1 text-sm"
+        className="rounded-lg bg-card px-3 py-1.5 text-sm shadow-sm outline-none ring-1 ring-foreground/10 focus-visible:ring-2 focus-visible:ring-ring"
       />
       {state?.error && (
         <p role="alert" className="text-sm text-red-600">
@@ -61,7 +61,7 @@ function CollectionNameForm({ onClose }: { onClose: () => void }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-foreground px-3 py-1 text-sm font-medium text-background disabled:opacity-50"
+          className="rounded-full bg-primary px-4 py-1 text-sm font-medium text-primary-foreground disabled:opacity-50"
         >
           {pending ? "Adding..." : "Add"}
         </button>

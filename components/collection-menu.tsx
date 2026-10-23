@@ -58,7 +58,7 @@ export function CollectionMenu({ id, name }: { id: string; name: string }) {
         error={error}
         onConfirm={confirmDelete}
         onCancel={close}
-        className="absolute inset-x-0 top-0 z-10 rounded-md border border-foreground/20 bg-background p-2 shadow-sm"
+        className="absolute inset-x-0 top-0 z-10 rounded-xl bg-card p-3 shadow-lg ring-1 ring-foreground/5"
       />
     );
   }
@@ -70,7 +70,7 @@ export function CollectionMenu({ id, name }: { id: string; name: string }) {
         // h-9 matches the height of a collection row in the sidebar (py-2 plus
         // text-sm line height). The row reserves this button's width with pr-9
         // in components/sidebar.tsx; change both together.
-        className="absolute right-1 top-0 flex h-9 w-8 items-center justify-center rounded-md text-foreground/60 hover:bg-foreground/5 hover:text-foreground"
+        className="absolute right-1 top-0 flex h-9 w-8 items-center justify-center rounded-lg text-foreground/50 hover:bg-foreground/5 hover:text-primary"
       >
         <MoreHorizontal aria-hidden size={16} />
       </DropdownMenuTrigger>

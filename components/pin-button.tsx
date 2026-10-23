@@ -16,11 +16,11 @@ export function PinIcon({ filled }: { filled: boolean }) {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      width="16"
-      height="16"
+      width="18"
+      height="18"
       fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
@@ -61,7 +61,9 @@ export function PinButton({ noteId, pinned, showLabel = false, onError }: Props)
         aria-pressed={shownPinned}
         aria-label={label}
         title={label}
-        className="flex items-center gap-1.5 rounded-md border border-foreground/20 px-2 py-1 text-sm hover:bg-foreground/10 disabled:opacity-50"
+        className={`flex items-center gap-1.5 rounded-full p-1.5 text-sm hover:bg-primary/10 hover:text-primary disabled:opacity-50 ${
+          shownPinned ? "text-primary" : "text-foreground/40"
+        } ${showLabel ? "px-3" : ""}`}
       >
         <PinIcon filled={shownPinned} />
         {showLabel && <span>{shownPinned ? "Unpin" : "Pin"}</span>}

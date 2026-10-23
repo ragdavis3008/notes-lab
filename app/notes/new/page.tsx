@@ -24,7 +24,7 @@ async function NewNoteForm() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold">New note</h1>
+      <h1 className="mb-6 text-2xl font-bold">New note</h1>
       <NoteForm
         action={createNoteAction}
         collections={collections}
@@ -37,7 +37,7 @@ async function NewNoteForm() {
 
 export default function NewNotePage() {
   return (
-    <AppShell>
+    <AppShell backLink>
       <Suspense fallback={<p>Loading...</p>}>
         <NewNoteForm />
       </Suspense>
