@@ -7,6 +7,7 @@ import {
   CollectionNotFoundError,
   createCollection,
   createNote,
+  createTag,
   deleteCollection,
   deleteNote,
   DuplicateCollectionError,
@@ -156,6 +157,26 @@ export async function createCollectionAction(
     }
     console.error("createCollectionAction failed:", e);
     return { error: "Could not create the collection. Please try again.", value: raw };
+  }
+  // The sidebar is on every page, so refresh the whole layout.
+  revalidatePath("/", "layout");
+  return { saved: Date.now() };
+}
+
+export async function createTagAction(
+  _prev: CollectionFormState,
+  formData: FormData,
+): Promise<CollectionFormState> {
+  await requireUser();
+  const raw = String(formData.get("name") ?? "");
+  const name = raw.trim().toLowerCase();
+  if (name === "") return { error: "Tag name is required.", value: raw };
+
+  try {
+    await createTag(name);
+  } catch (e) {
+    console.error("createTagAction failed:", e);
+    return { error: "Could not create the tag. Please try again.", value: raw };
   }
   // The sidebar is on every page, so refresh the whole layout.
   revalidatePath("/", "layout");

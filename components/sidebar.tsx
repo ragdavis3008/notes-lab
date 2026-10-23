@@ -3,6 +3,7 @@ import { unstable_rethrow } from "next/navigation";
 import { type ReactNode, Suspense } from "react";
 import { CollectionMenu } from "@/components/collection-menu";
 import { NewCollectionForm } from "@/components/new-collection-form";
+import { NewTagForm } from "@/components/new-tag-form";
 import { TagColorPicker } from "@/components/tag-color-picker";
 import { TagDot } from "@/components/tag-pill";
 import { requireUser } from "@/lib/auth";
@@ -26,6 +27,8 @@ type Props = {
 // px-3 py-2 with text-sm is 36px tall: the ⋯ button in collection-menu.tsx (h-9) matches it.
 const linkBase = "rounded-lg px-3 py-2 hover:bg-foreground/5";
 const activeLink = "bg-primary/10 font-semibold text-primary hover:bg-primary/10";
+// Same as activeLink without the bold: collection names stay normal weight when selected.
+const activeGroupLink = "bg-primary/10 text-primary hover:bg-primary/10";
 const headingClass = "mt-4 px-3 text-base font-bold";
 
 function NoteLinks({
@@ -106,7 +109,7 @@ function Group({
           </span>
           <Link
             href={href}
-            className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${selected ? activeLink : ""}`}
+            className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${selected ? activeGroupLink : ""}`}
           >
             <span className="min-w-0 flex-1 truncate">{label}</span>
             <span className="shrink-0 text-xs text-foreground/50">{count}</span>
@@ -315,6 +318,7 @@ async function Nav({
         All notes
       </Link>
       <p className={headingClass}>Collections</p>
+      <NewCollectionForm />
       <Groups
         selected={selected}
         tagIds={tagIds}
@@ -325,8 +329,8 @@ async function Nav({
         tagsByNote={tagsByNote}
         loadError={loadError}
       />
-      <NewCollectionForm />
       <p className={headingClass}>Tags</p>
+      <NewTagForm />
       <TagList
         selected={selected}
         tagIds={tagIds}

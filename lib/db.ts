@@ -398,6 +398,13 @@ async function findOrCreateTag(
   return tag;
 }
 
+// Creates a tag on its own (the sidebar's "+ New tag"), with the same rules as the
+// note form: trimmed, lowercase, an existing name is reused, new tags start gray.
+export async function createTag(name: string): Promise<void> {
+  const supabase = await createClient();
+  await findOrCreateTag(supabase, name);
+}
+
 // Makes the note's tags exactly the given existing tag ids plus the tags named in
 // newNames (created if they do not exist yet). Tags the note had before and that
 // are not listed are unlinked; the tags themselves stay in the tags table.
