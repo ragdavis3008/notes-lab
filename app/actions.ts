@@ -8,6 +8,7 @@ import {
   CollectionNotFoundError,
   createCollection,
   createNote,
+  deleteCollection,
   deleteNote,
   DuplicateCollectionError,
   NoteNotFoundError,
@@ -152,6 +153,26 @@ export async function renameCollectionAction(
   return { saved: Date.now() };
 }
 
+export type DeleteCollectionState = { error: string } | undefined;
+
+// The collection's notes are kept: the database moves them to "Uncollected".
+export async function deleteCollectionAction(
+  id: string,
+): Promise<DeleteCollectionState> {
+  await requireUser();
+  // Server actions are public endpoints, so check what the client sent.
+  if (!isUuid(id)) return { error: "That collection is not valid." };
+
+  try {
+    await deleteCollection(id);
+  } catch (e) {
+    console.error("deleteCollectionAction failed:", e);
+    return { error: errorMessage(e, "Could not delete the collection. Please try again.") };
+  }
+  // The sidebar is on every page, so refresh the whole layout.
+  revalidatePath("/", "layout");
+}
+
 // An empty collectionId means "No collection".
 export async function setNoteCollectionAction(
   noteId: number,
@@ -248,7 +269,12 @@ export async function setTagColorAction(
   revalidatePath("/", "layout");
 }
 
-export async function deleteNoteAction(id: number): Promise<DeleteState> {
+// The note page leaves for the list after a delete. The list passes
+// redirectToList = false, so the current filters and search stay in the URL.
+export async function deleteNoteAction(
+  id: number,
+  redirectToList = true,
+): Promise<DeleteState> {
   await requireUser();
   try {
     await deleteNote(id);
@@ -257,5 +283,5 @@ export async function deleteNoteAction(id: number): Promise<DeleteState> {
     return { error: errorMessage(e, "Could not delete the note. Please try again.") };
   }
   revalidatePath("/", "layout");
-  redirect("/notes");
+  if (redirectToList) redirect("/notes");
 }

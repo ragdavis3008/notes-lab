@@ -16,8 +16,9 @@ import {
 import { NoteCard } from "@/components/note-card";
 import { PinIcon } from "@/components/pin-button";
 import { SearchBox } from "@/components/search-box";
-import { TagPill } from "@/components/tag-pill";
+import { TagDot } from "@/components/tag-pill";
 import { filterHref, normalizeSearch, parseTagIds } from "@/lib/filter-url";
+import { timeAgo } from "@/lib/time-ago";
 import type { Note, Tag } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
 
@@ -171,14 +172,21 @@ function NotesList({
   return (
     <ul className="flex flex-col gap-3">
       {notes.map((note) => (
-        <NoteCard key={note.id} noteId={note.id} pinned={note.pinned}>
-          {/* The pin button is a sibling of the link: a button inside a link is invalid.
-              The ::after layer stretches the link over the whole card and draws the focus ring. */}
+        <NoteCard
+          key={note.id}
+          noteId={note.id}
+          noteTitle={note.title}
+          pinned={note.pinned}
+        >
+          {/* The pin, edit and delete buttons are siblings of the link: a button inside a link is invalid.
+              The ::after layer stretches the link over the whole card and draws the focus ring.
+              pr-28 keeps the text clear of those three buttons. */}
           <Link
             href={`/notes/${note.id}`}
-            className="block p-4 pr-16 outline-none after:absolute after:inset-0 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-foreground"
+            className="block p-4 pr-28 outline-none after:absolute after:inset-0 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-foreground"
           >
-            <h2 className="break-words font-medium">
+            {/* truncate: a long title is cut off with "…" after one line. */}
+            <h2 className="truncate font-medium">
               {note.pinned && (
                 <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs font-normal text-foreground/70">
                   <PinIcon filled />
@@ -192,15 +200,22 @@ function NotesList({
                 {preview(note.content)}
               </p>
             )}
-            {(tagsByNote.get(note.id) ?? []).length > 0 && (
-              <ul className="mt-2 flex flex-wrap gap-1">
-                {tagsByNote.get(note.id)!.map((tag) => (
-                  <li key={tag.id}>
-                    <TagPill name={tag.name} color={tag.color} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className="mt-2 flex items-center gap-2">
+              {(tagsByNote.get(note.id) ?? []).length > 0 && (
+                // relative z-10 lifts the dots above the stretched link layer,
+                // so hovering one shows the tag name.
+                <ul className="relative z-10 flex flex-wrap gap-1.5">
+                  {tagsByNote.get(note.id)!.map((tag) => (
+                    <li key={tag.id}>
+                      <TagDot color={tag.color} name={tag.name} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <span className="ml-auto shrink-0 text-xs text-foreground/60">
+                Edited {timeAgo(note.updated_at ?? note.created_at)}
+              </span>
+            </div>
           </Link>
         </NoteCard>
       ))}

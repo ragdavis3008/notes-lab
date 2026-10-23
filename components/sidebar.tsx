@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { type ReactNode, Suspense } from "react";
-import { AuthButton } from "@/components/auth-button";
+import { CollectionMenu } from "@/components/collection-menu";
 import { NewCollectionForm } from "@/components/new-collection-form";
-import { RenameCollectionButton } from "@/components/rename-collection-button";
 import { TagColorPicker } from "@/components/tag-color-picker";
 import { TagDot } from "@/components/tag-pill";
 import { requireUser } from "@/lib/auth";
-import { listCollections, listNotes, listTags } from "@/lib/db";
+import { listCollections, listNotes, listTags, listTagsByNoteIds } from "@/lib/db";
 import { filterHref } from "@/lib/filter-url";
-import type { Note, Tag } from "@/lib/types";
+import type { Collection, Note, Tag } from "@/lib/types";
 
 export type SidebarSelection = "all" | "uncollected" | (string & {});
 
@@ -26,41 +25,65 @@ type Props = {
 
 const linkBase = "rounded-md px-3 py-2 hover:bg-foreground/5";
 const activeLink = "bg-foreground/10 font-medium";
+const headingClass = "mt-3 px-3 text-xs font-bold uppercase text-foreground/50";
 
-function NoteLinks({ notes, empty }: { notes: Note[]; empty: string }) {
+function NoteLinks({
+  notes,
+  tagsByNote,
+  empty,
+}: {
+  notes: Note[];
+  tagsByNote: Map<number, Tag[]>;
+  empty: string;
+}) {
   if (notes.length === 0) {
     return <p className="px-3 py-1 text-foreground/60">{empty}</p>;
   }
   return (
     <ul className="flex flex-col">
-      {notes.map((note) => (
-        <li key={note.id}>
-          <Link
-            href={`/notes/${note.id}`}
-            className="block truncate rounded-md px-3 py-1 text-foreground/80 hover:bg-foreground/5"
-          >
-            {note.title}
-          </Link>
-        </li>
-      ))}
+      {notes.map((note) => {
+        const tags = tagsByNote.get(note.id) ?? [];
+        return (
+          <li key={note.id}>
+            <Link
+              href={`/notes/${note.id}`}
+              className="flex items-center gap-2 rounded-md px-3 py-1 text-foreground/80 hover:bg-foreground/5"
+            >
+              <span className="min-w-0 flex-1 truncate">{note.title}</span>
+              {tags.length > 0 && (
+                <span className="flex shrink-0 gap-1">
+                  {tags.map((tag) => (
+                    <TagDot key={tag.id} color={tag.color} name={tag.name} />
+                  ))}
+                </span>
+              )}
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
 function Group({
   label,
+  count,
   href,
   selected,
   open,
   notes,
+  tagsByNote,
   empty,
   action,
 }: {
   label: string;
+  // Number of notes in the group, shown after the name.
+  count: number;
   href: string;
   selected: boolean;
   open: boolean;
   notes: Note[];
+  tagsByNote: Map<number, Tag[]>;
   empty: string;
   // Control shown beside the label. It sits outside the <summary>, so using
   // it never toggles the group.
@@ -69,10 +92,10 @@ function Group({
   return (
     <div className="relative">
       <details open={open} className="group">
-        {/* pr-16 keeps the label clear of the Rename button, which is as tall as
-            this row. See components/rename-collection-button.tsx. */}
+        {/* pr-9 keeps the label clear of the ⋯ button, which is as tall as
+            this row. See components/collection-menu.tsx. */}
         <summary
-          className={`flex cursor-pointer list-none items-center gap-1 ${action ? "pr-16" : ""}`}
+          className={`flex cursor-pointer list-none items-center gap-1 ${action ? "pr-9" : ""}`}
         >
           <span
             aria-hidden
@@ -82,13 +105,14 @@ function Group({
           </span>
           <Link
             href={href}
-            className={`${linkBase} min-w-0 flex-1 truncate ${selected ? activeLink : ""}`}
+            className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${selected ? activeLink : ""}`}
           >
-            {label}
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <span className="shrink-0 text-xs text-foreground/50">{count}</span>
           </Link>
         </summary>
         <div className="ml-4">
-          <NoteLinks notes={notes} empty={empty} />
+          <NoteLinks notes={notes} tagsByNote={tagsByNote} empty={empty} />
         </div>
       </details>
       {action}
@@ -96,31 +120,29 @@ function Group({
   );
 }
 
-async function Groups({
+function Groups({
   selected,
   tagIds,
   search,
-  activeNote,
+  activeNoteId,
+  collections,
+  notes,
+  tagsByNote,
+  loadError,
 }: {
   selected: SidebarSelection;
   tagIds: number[];
   search: string;
-  activeNote?: Promise<{ id: string }>;
+  activeNoteId: number | null;
+  collections: Collection[];
+  notes: Note[];
+  tagsByNote: Map<number, Tag[]>;
+  loadError?: string;
 }) {
-  let collections, notes;
-  try {
-    [collections, notes] = await Promise.all([listCollections(), listNotes()]);
-  } catch (e) {
-    unstable_rethrow(e);
-    return (
-      <p className="px-3 text-red-600">
-        Error loading collections: {e instanceof Error ? e.message : "unknown error"}
-      </p>
-    );
+  if (loadError !== undefined) {
+    return <p className="px-3 text-red-600">Error loading collections: {loadError}</p>;
   }
 
-  const params = activeNote ? await activeNote : undefined;
-  const activeNoteId = params && /^\d+$/.test(params.id) ? Number(params.id) : null;
   const holdsActiveNote = (list: Note[]) =>
     activeNoteId !== null && list.some((n) => n.id === activeNoteId);
 
@@ -137,21 +159,25 @@ async function Groups({
           <Group
             key={c.id}
             label={c.name}
+            count={inCollection.length}
             href={filterHref(c.id, tagIds, search)}
             selected={selected === c.id}
             open={selected === c.id || holdsActiveNote(inCollection)}
             notes={inCollection}
+            tagsByNote={tagsByNote}
             empty="No notes in this collection yet"
-            action={<RenameCollectionButton id={c.id} name={c.name} />}
+            action={<CollectionMenu id={c.id} name={c.name} />}
           />
         );
       })}
       <Group
         label="Uncollected"
+        count={uncollected.length}
         href={filterHref("uncollected", tagIds, search)}
         selected={selected === "uncollected"}
         open={selected === "uncollected" || holdsActiveNote(uncollected)}
         notes={uncollected}
+        tagsByNote={tagsByNote}
         empty="No uncollected notes"
       />
     </>
@@ -164,12 +190,15 @@ function TagList({
   tagIds,
   search,
   tags,
+  noteCounts,
   loadError,
 }: {
   selected: SidebarSelection;
   tagIds: number[];
   search: string;
   tags: Tag[];
+  // Tag id -> number of notes with that tag.
+  noteCounts: Map<number, number>;
   loadError?: string;
 }) {
   if (loadError !== undefined) {
@@ -192,18 +221,21 @@ function TagList({
             : [...tagIds, tag.id];
           return (
             <li key={tag.id} className="flex flex-wrap items-center">
+              {/* The colour picker is the tag's one dot: click it to change the colour. */}
+              <TagColorPicker tagId={tag.id} tagName={tag.name} color={tag.color} />
               <Link
                 href={filterHref(selected, next, search)}
                 aria-current={isSelected ? "true" : undefined}
                 className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${isSelected ? activeLink : ""}`}
               >
-                <TagDot color={tag.color} />
-                <span className="truncate">
+                <span className="min-w-0 flex-1 truncate">
                   {isSelected ? "✓ " : ""}
                   {tag.name}
                 </span>
+                <span className="shrink-0 text-xs text-foreground/50">
+                  {noteCounts.get(tag.id) ?? 0}
+                </span>
               </Link>
-              <TagColorPicker tagId={tag.id} tagName={tag.name} color={tag.color} />
             </li>
           );
         })}
@@ -233,46 +265,77 @@ async function Nav({
     searchText,
   ]);
 
-  // Ignore ids from the URL that match no existing tag, like app/page.tsx does.
+  const params = activeNote ? await activeNote : undefined;
+  const activeNoteId = params && /^\d+$/.test(params.id) ? Number(params.id) : null;
+
+  // The headings need both counts, so everything is loaded here, once.
+  let collections: Collection[] = [];
+  let notes: Note[] = [];
   let tags: Tag[] = [];
+  let tagsByNote = new Map<number, Tag[]>();
   let loadError: string | undefined;
   try {
-    tags = await listTags();
+    [collections, notes, tags] = await Promise.all([
+      listCollections(),
+      listNotes(),
+      listTags(),
+    ]);
+    tagsByNote = await listTagsByNoteIds(notes.map((n) => n.id));
   } catch (e) {
     unstable_rethrow(e);
-    console.error("Sidebar tags failed:", e);
+    console.error("Sidebar failed:", e);
     loadError = e instanceof Error ? e.message : "unknown error";
   }
+
+  // Ignore ids from the URL that match no existing tag, like app/page.tsx does.
   const tagIds = loadError
     ? []
     : urlTagIds.filter((id) => tags.some((t) => t.id === id));
 
+  const noteCounts = new Map<number, number>();
+  for (const noteTags of tagsByNote.values()) {
+    for (const tag of noteTags) {
+      noteCounts.set(tag.id, (noteCounts.get(tag.id) ?? 0) + 1);
+    }
+  }
+
   return (
     <nav className="flex flex-col gap-1 text-sm">
+      <Link
+        href="/notes/new"
+        className="rounded-md px-3 py-2 text-foreground/70 hover:bg-foreground/5"
+      >
+        + New note
+      </Link>
       <Link
         href={filterHref("all", tagIds, search)}
         className={`${linkBase} ${selected === "all" ? activeLink : ""}`}
       >
         All notes
       </Link>
-      <p className="mt-3 px-3 text-xs font-medium uppercase text-foreground/50">
-        Collections
+      <p className={headingClass}>
+        Collections{loadError === undefined ? ` ${collections.length}` : ""}
       </p>
       <Groups
         selected={selected}
         tagIds={tagIds}
         search={search}
-        activeNote={activeNote}
+        activeNoteId={activeNoteId}
+        collections={collections}
+        notes={notes}
+        tagsByNote={tagsByNote}
+        loadError={loadError}
       />
       <NewCollectionForm />
-      <p className="mt-3 px-3 text-xs font-medium uppercase text-foreground/50">
-        Tags
+      <p className={headingClass}>
+        Tags{loadError === undefined ? ` ${tags.length}` : ""}
       </p>
       <TagList
         selected={selected}
         tagIds={tagIds}
         search={search}
         tags={tags}
+        noteCounts={noteCounts}
         loadError={loadError}
       />
     </nav>
@@ -288,11 +351,6 @@ export function Sidebar(props: Props) {
       <Suspense fallback={<p className="px-3 text-sm">Loading...</p>}>
         <Nav {...props} />
       </Suspense>
-      <div className="mt-6 border-t border-foreground/10 pt-4">
-        <Suspense fallback={null}>
-          <AuthButton />
-        </Suspense>
-      </div>
     </aside>
   );
 }

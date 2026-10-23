@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { AuthButton } from "@/components/auth-button";
 import { Sidebar, type SidebarSelection } from "@/components/sidebar";
 
 export function AppShell({
@@ -26,6 +28,11 @@ export function AppShell({
       <main
         className={`min-w-0 flex-1 p-6 ${activeNote ? "order-first sm:order-none" : ""}`}
       >
+        <div className="mb-4 flex justify-end">
+          <Suspense fallback={null}>
+            <AuthButton />
+          </Suspense>
+        </div>
         <div className="mx-auto max-w-3xl">{children}</div>
       </main>
     </div>

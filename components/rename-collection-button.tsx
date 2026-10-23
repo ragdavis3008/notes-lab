@@ -1,44 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { renameCollectionAction } from "@/app/actions";
 
-// Sits next to a collection's name, outside the group's <summary>, so clicking
-// it never opens or closes the group and never navigates.
-export function RenameCollectionButton({
-  id,
-  name,
-}: {
-  id: string;
-  name: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  // Stable identity, so RenameForm's effect only re-runs when a save happens.
-  const close = useCallback(() => setEditing(false), []);
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        aria-label={`Rename collection ${name}`}
-        // h-9 matches the height of a collection row in the sidebar (py-2 plus
-        // text-sm line height). The row reserves this button's width with pr-16
-        // in components/sidebar.tsx; change both together.
-        className="absolute right-1 top-0 flex h-9 items-center rounded-md px-2 text-xs text-foreground/60 hover:bg-foreground/5 hover:text-foreground"
-      >
-        Rename
-      </button>
-    );
-  }
-
-  return <RenameForm id={id} name={name} onClose={close} />;
-}
-
+// Opened from the collection's ⋯ menu (components/collection-menu.tsx).
 // Its action state lives only while the form is open, so closing and
 // reopening starts with no old error or rejected value.
-function RenameForm({
+export function RenameForm({
   id,
   name,
   onClose,

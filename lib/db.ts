@@ -159,6 +159,21 @@ export async function renameCollection(
   if (data.length === 0) throw new CollectionNotFoundError();
 }
 
+// Deletes only the collection row. notes.collection_id is a foreign key with
+// ON DELETE SET NULL (docs/database-schema.md), so the database moves its notes
+// to "Uncollected" and keeps them. The app never deletes notes here.
+export async function deleteCollection(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("collections")
+    .delete()
+    .eq("id", id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new CollectionNotFoundError();
+}
+
 export async function listNotesByCollection(
   collectionId: string,
   search?: string,
