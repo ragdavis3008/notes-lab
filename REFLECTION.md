@@ -273,3 +273,9 @@ existed before PR #9, and I had never noticed because I wasn't running lint. I f
 of it on chore/test-config (lint is now at 0 problems) and ran a /code-review before
 merging. The lesson: run npm run lint and npm run build as part of my checks before every
 merge, not just the tests.
+
+## Playwright tests (Sprint 3.4)
+
+**Which kinds of bugs did the tests catch that I or the agent missed in earlier sessions?**
+
+The tests caught timing problems that never show up when I click through the app myself: Next.js briefly keeps the previous page hidden on screen, so the edit test filled in the wrong form, and the cleanup ran before the notes list had loaded, which left test notes behind in the shared data. Using Playwright MCP as a live tester also confirmed that the new collection and tags form worked end to end, including the sidebar counts, and on the todo demo site it found real bugs (the "0 items left" counter and "Mark all as complete") that a quick look would have missed.

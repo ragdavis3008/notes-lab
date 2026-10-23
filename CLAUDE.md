@@ -63,3 +63,9 @@ No deployment in this project. Authentication is being added with Supabase Auth.
 - Use Supabase Auth for all sign-in and session handling. Never build custom auth or store passwords anywhere.
 - Every page under /notes requires a signed-in user. Verify this on the server with the Supabase Auth server, never only the browser session. If the user is not signed in, redirect to /auth/login.
 - After sign-out, redirect to /auth/login.
+
+## Testing
+- Playwright end-to-end tests live in `e2e/` and run with `npm run test:e2e`. Unit tests run with `npm run test:run`. Run both before and after every change.
+- Use the CLI for one-off tasks. Use MCP when the agent needs to repeat or react to what's on screen.
+- Temporary scripts go in the scratchpad, never in `e2e/`.
+- Never print or write E2E credentials into files or tool output.
