@@ -44,3 +44,11 @@ supabase/.temp/
 
 # playwright mcp snapshots
 .playwright-mcp/
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
