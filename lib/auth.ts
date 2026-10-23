@@ -1,3 +1,4 @@
+import { io } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -5,10 +6,24 @@ import { createClient } from "@/lib/supabase/server";
 // the cookie in the browser. Redirects to the login page when nobody is.
 // redirect() works by throwing, so call this outside any try/catch.
 export async function requireUser() {
+  // Supabase Auth compares the session expiry with Date.now(). io() keeps that
+  // out of the prerender, so the Suspense fallback is what ships in the shell.
+  await io();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) redirect("/auth/login");
   return data.user;
+}
+
+// Reads the signed-in user's claims without redirecting, for UI that shows
+// something different when nobody is signed in. Returns null in that case.
+// Not a security check: pages and actions use requireUser() for that.
+export async function getCurrentClaims() {
+  // Same reason as in requireUser(): getClaims() reads Date.now().
+  await io();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims ?? null;
 }
 
 // Only same-site paths are allowed as a redirect target ("/notes", not
