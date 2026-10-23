@@ -1,23 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { FormState } from "@/app/actions";
+import { TagMultiSelect } from "@/components/tag-multi-select";
+import type { Collection, Tag } from "@/lib/types";
 
 type Props = {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
+  collections: Collection[];
+  tags: Tag[];
   initialTitle?: string;
   initialContent?: string;
+  initialCollectionId?: string | null;
+  initialTagIds?: number[];
   submitLabel: string;
 };
 
+// Used for both new and existing notes: everything is saved with the button.
 export function NoteForm({
   action,
+  collections,
+  tags,
   initialTitle = "",
   initialContent = "",
+  initialCollectionId = null,
+  initialTagIds = [],
   submitLabel,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  // Kept in state so the choice survives a failed save (the form resets after it).
+  const [collectionId, setCollectionId] = useState(initialCollectionId ?? "");
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -37,6 +50,26 @@ export function NoteForm({
           </p>
         )}
       </div>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="collection" className="text-sm font-medium">
+          Collection
+        </label>
+        <select
+          id="collection"
+          name="collection_id"
+          value={collectionId}
+          onChange={(e) => setCollectionId(e.target.value)}
+          className="rounded-md border border-foreground/20 bg-background px-3 py-2"
+        >
+          <option value="">No collection</option>
+          {collections.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <TagMultiSelect tags={tags} initialSelectedIds={initialTagIds} />
       <div className="flex flex-col gap-1">
         <label htmlFor="content" className="text-sm font-medium">
           Content <span className="text-foreground/50">(optional)</span>
