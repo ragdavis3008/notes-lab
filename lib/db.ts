@@ -70,23 +70,33 @@ export async function getNote(id: number): Promise<Note | null> {
   return data;
 }
 
+// A null collectionId leaves the note uncollected. Returns the new note's id.
 export async function createNote(input: {
   title: string;
   content: string | null;
-}): Promise<void> {
+  collectionId: string | null;
+}): Promise<number> {
   const supabase = await createClient();
-  // collection_id is not sent, so it stays null.
-  const { error } = await supabase.from("notes").insert({
-    title: input.title,
-    content: input.content,
-  });
+  const { data, error } = await supabase
+    .from("notes")
+    .insert({
+      title: input.title,
+      content: input.content,
+      collection_id: input.collectionId,
+    })
+    .select("id");
 
+  // 23503 = Postgres foreign_key_violation (collection_id points to nothing).
+  if (error?.code === "23503") throw new CollectionNotFoundError();
   if (error) throw new Error(error.message);
+  const id = data[0]?.id;
+  if (typeof id !== "number") throw new Error("Could not read the new note's id.");
+  return id;
 }
 
 export async function updateNote(
   id: number,
-  input: { title: string; content: string | null },
+  input: { title: string; content: string | null; collectionId: string | null },
 ): Promise<void> {
   const supabase = await createClient();
   // select() returns the changed rows, so an empty result means no row matched.
@@ -95,11 +105,14 @@ export async function updateNote(
     .update({
       title: input.title,
       content: input.content,
+      collection_id: input.collectionId,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
     .select("id");
 
+  // 23503 = Postgres foreign_key_violation (collection_id points to nothing).
+  if (error?.code === "23503") throw new CollectionNotFoundError();
   if (error) throw new Error(error.message);
   if (data.length === 0) throw new NoteNotFoundError();
 }
@@ -159,6 +172,21 @@ export async function renameCollection(
   if (data.length === 0) throw new CollectionNotFoundError();
 }
 
+// Deletes only the collection row. notes.collection_id is a foreign key with
+// ON DELETE SET NULL (docs/database-schema.md), so the database moves its notes
+// to "Uncollected" and keeps them. The app never deletes notes here.
+export async function deleteCollection(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("collections")
+    .delete()
+    .eq("id", id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new CollectionNotFoundError();
+}
+
 export async function listNotesByCollection(
   collectionId: string,
   search?: string,
@@ -198,27 +226,6 @@ export async function listUncollectedNotes(search?: string): Promise<Note[]> {
 
   if (error) throw new Error(error.message);
   return data;
-}
-
-// Pass null to take the note out of its collection.
-export async function setNoteCollection(
-  noteId: number,
-  collectionId: string | null,
-): Promise<void> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notes")
-    .update({
-      collection_id: collectionId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", noteId)
-    .select("id");
-
-  // 23503 = Postgres foreign_key_violation (collection_id points to nothing).
-  if (error?.code === "23503") throw new CollectionNotFoundError();
-  if (error) throw new Error(error.message);
-  if (data.length === 0) throw new NoteNotFoundError();
 }
 
 // Pinning is not an edit of the note, so updated_at is deliberately left alone.
@@ -356,13 +363,11 @@ export async function listNoteIdsWithAllTags(
 }
 
 // Tag names are trimmed and lowercase. Reuses an existing tag with that name.
-// Adding a tag the note already has is not an error.
-export async function addTagToNote(
-  noteId: number,
+async function findOrCreateTag(
+  supabase: Awaited<ReturnType<typeof createClient>>,
   rawName: string,
-): Promise<void> {
+): Promise<Tag> {
   const name = rawName.trim().toLowerCase();
-  const supabase = await createClient();
 
   async function findTag(): Promise<Tag | null> {
     const { data, error } = await supabase
@@ -390,29 +395,65 @@ export async function addTagToNote(
     }
   }
   if (!tag) throw new Error("Could not find or create the tag.");
-
-  const { error } = await supabase
-    .from("note_tags")
-    .insert({ note_id: noteId, tag_id: tag.id });
-
-  // 23505 = the note already has this tag; nothing to do.
-  if (error?.code === "23505") return;
-  // 23503 = foreign_key_violation (the note was deleted).
-  if (error?.code === "23503") throw new NoteNotFoundError();
-  if (error) throw new Error(error.message);
+  return tag;
 }
 
-// Deletes only the note_tags row; the tag itself stays in the tags table.
-export async function removeTagFromNote(
+// Creates a tag on its own (the sidebar's "+ New tag"), with the same rules as the
+// note form: trimmed, lowercase, an existing name is reused, new tags start gray.
+export async function createTag(name: string): Promise<void> {
+  const supabase = await createClient();
+  await findOrCreateTag(supabase, name);
+}
+
+// Makes the note's tags exactly the given existing tag ids plus the tags named in
+// newNames (created if they do not exist yet). Tags the note had before and that
+// are not listed are unlinked; the tags themselves stay in the tags table.
+export async function setNoteTags(
   noteId: number,
-  tagId: number,
+  tagIds: number[],
+  newNames: string[],
 ): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("note_tags")
-    .delete()
-    .eq("note_id", noteId)
-    .eq("tag_id", tagId);
+  const wanted = new Set(tagIds);
 
+  // Check every id before writing anything, so a stale or made-up id changes nothing.
+  if (wanted.size > 0) {
+    const { data, error } = await supabase
+      .from("tags")
+      .select("id")
+      .in("id", [...wanted]);
+    if (error) throw new Error(error.message);
+    if (data.length !== wanted.size) throw new TagNotFoundError();
+  }
+
+  for (const name of newNames) {
+    wanted.add((await findOrCreateTag(supabase, name)).id);
+  }
+
+  const { data: links, error } = await supabase
+    .from("note_tags")
+    .select()
+    .eq("note_id", noteId);
   if (error) throw new Error(error.message);
+  const current = new Set((links as NoteTag[]).map((l) => l.tag_id));
+
+  const toRemove = [...current].filter((id) => !wanted.has(id));
+  const toAdd = [...wanted].filter((id) => !current.has(id));
+
+  if (toRemove.length > 0) {
+    const { error: removeError } = await supabase
+      .from("note_tags")
+      .delete()
+      .eq("note_id", noteId)
+      .in("tag_id", toRemove);
+    if (removeError) throw new Error(removeError.message);
+  }
+  if (toAdd.length > 0) {
+    const { error: addError } = await supabase
+      .from("note_tags")
+      .insert(toAdd.map((tag_id) => ({ note_id: noteId, tag_id })));
+    // 23503 = foreign_key_violation (the note or a tag was deleted).
+    if (addError?.code === "23503") throw new NoteNotFoundError();
+    if (addError) throw new Error(addError.message);
+  }
 }

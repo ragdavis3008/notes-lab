@@ -25,7 +25,8 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
 - Create, edit and delete notes (title and content)
 - Collections: group notes in the sidebar; a note belongs to at most one collection.
   Notes without one appear under "Uncollected". Deleting a collection keeps its notes.
-- Rename a collection
+- Rename or delete a collection from its ⋯ menu in the sidebar (deleting asks first
+  and keeps the notes)
 - Tags: reusable, saved in lowercase, each with one of eight colours
 - Tag filter: shows only notes that have ALL the selected tags
 - Search by title and content (full-text: whole words and word beginnings)

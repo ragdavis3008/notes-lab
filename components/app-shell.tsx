@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+import { AppFrame } from "@/components/app-frame";
+import { AuthButton } from "@/components/auth-button";
 import { Sidebar, type SidebarSelection } from "@/components/sidebar";
 
 export function AppShell({
@@ -6,28 +9,34 @@ export function AppShell({
   selectedTags = Promise.resolve([]),
   searchText = Promise.resolve(""),
   activeNote,
+  backLink = false,
 }: {
   children: React.ReactNode;
   selected?: Promise<SidebarSelection>;
   selectedTags?: Promise<number[]>;
   searchText?: Promise<string>;
   activeNote?: Promise<{ id: string }>;
+  // Note pages (view, edit, new) set this to show "‹ All notes" on a phone.
+  backLink?: boolean;
 }) {
   return (
-    <div className="flex min-h-screen flex-col sm:flex-row">
-      <Sidebar
-        selected={selected}
-        selectedTags={selectedTags}
-        searchText={searchText}
-        activeNote={activeNote}
-      />
-      {/* On a phone the sidebar stacks above the content. On a note page the note
-          goes first, so opening a note from the sidebar does not leave it off-screen. */}
-      <main
-        className={`min-w-0 flex-1 p-6 ${activeNote ? "order-first sm:order-none" : ""}`}
-      >
-        <div className="mx-auto max-w-3xl">{children}</div>
-      </main>
-    </div>
+    <AppFrame
+      sidebar={
+        <Sidebar
+          selected={selected}
+          selectedTags={selectedTags}
+          searchText={searchText}
+          activeNote={activeNote}
+        />
+      }
+      header={
+        <Suspense fallback={null}>
+          <AuthButton />
+        </Suspense>
+      }
+      backLink={backLink}
+    >
+      {children}
+    </AppFrame>
   );
 }

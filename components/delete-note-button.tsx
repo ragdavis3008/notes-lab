@@ -13,7 +13,7 @@ export function DeleteNoteButton({ id }: { id: number }) {
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-red-600/40 px-4 py-2 text-sm text-red-600"
+        className="rounded-full bg-red-600/10 px-5 py-2 text-sm font-medium text-red-600 hover:bg-red-600/20"
       >
         Delete
       </button>
@@ -21,7 +21,7 @@ export function DeleteNoteButton({ id }: { id: number }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-md border border-red-600/40 p-3 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-red-600/10 p-4 text-sm">
       <span>Delete this note? This cannot be undone.</span>
       <button
         type="button"
@@ -33,7 +33,7 @@ export function DeleteNoteButton({ id }: { id: number }) {
             if (result?.error) setError(result.error);
           })
         }
-        className="rounded-md bg-red-600 px-3 py-1.5 text-white disabled:opacity-50"
+        className="rounded-full bg-red-600 px-4 py-1.5 text-white disabled:opacity-50"
       >
         {pending ? "Deleting..." : "Yes, delete"}
       </button>

@@ -11,11 +11,10 @@ export function TagPill({ name, color }: { name: string; color: TagColor }) {
   );
 }
 
-export function TagDot({ color }: { color: TagColor }) {
-  return (
-    <span
-      aria-hidden
-      className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${TAG_COLOR_CLASSES[color].dot}`}
-    />
-  );
+// Without a name the dot is decoration (the name is written next to it). With a
+// name, the dot is the only mark of the tag, so it gets a hover title and a label.
+export function TagDot({ color, name }: { color: TagColor; name?: string }) {
+  const className = `inline-block h-2.5 w-2.5 shrink-0 rounded-full ${TAG_COLOR_CLASSES[color].dot}`;
+  if (name === undefined) return <span aria-hidden className={className} />;
+  return <span role="img" aria-label={name} title={name} className={className} />;
 }

@@ -1,44 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { renameCollectionAction } from "@/app/actions";
 
-// Sits next to a collection's name, outside the group's <summary>, so clicking
-// it never opens or closes the group and never navigates.
-export function RenameCollectionButton({
-  id,
-  name,
-}: {
-  id: string;
-  name: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  // Stable identity, so RenameForm's effect only re-runs when a save happens.
-  const close = useCallback(() => setEditing(false), []);
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        aria-label={`Rename collection ${name}`}
-        // h-9 matches the height of a collection row in the sidebar (py-2 plus
-        // text-sm line height). The row reserves this button's width with pr-16
-        // in components/sidebar.tsx; change both together.
-        className="absolute right-1 top-0 flex h-9 items-center rounded-md px-2 text-xs text-foreground/60 hover:bg-foreground/5 hover:text-foreground"
-      >
-        Rename
-      </button>
-    );
-  }
-
-  return <RenameForm id={id} name={name} onClose={close} />;
-}
-
+// Opened from the collection's ⋯ menu (components/collection-menu.tsx).
 // Its action state lives only while the form is open, so closing and
 // reopening starts with no old error or rejected value.
-function RenameForm({
+export function RenameForm({
   id,
   name,
   onClose,
@@ -69,7 +38,7 @@ function RenameForm({
         // Closing mid-save would hide an error from the server.
         if (e.key === "Escape" && !pending) onClose();
       }}
-      className="absolute inset-x-0 top-0 z-10 flex flex-col gap-1 rounded-md border border-foreground/20 bg-background p-1 shadow-sm"
+      className="absolute inset-x-0 top-0 z-10 flex flex-col gap-1 rounded-xl bg-card p-1.5 shadow-lg ring-1 ring-foreground/5"
     >
       <div className="flex items-center gap-1">
         <label htmlFor={`rename-${id}`} className="sr-only">
@@ -81,12 +50,12 @@ function RenameForm({
           autoFocus
           onFocus={(e) => e.currentTarget.select()}
           defaultValue={state?.value ?? name}
-          className="min-w-0 flex-1 rounded-md border border-foreground/20 bg-background px-2 py-1 text-sm"
+          className="min-w-0 flex-1 rounded-lg bg-muted px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-foreground px-2 py-1 text-xs font-medium text-background disabled:opacity-50"
+          className="rounded-lg bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
         >
           {pending ? "Saving..." : "Save"}
         </button>

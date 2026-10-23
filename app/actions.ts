@@ -4,17 +4,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import {
-  addTagToNote,
   CollectionNotFoundError,
   createCollection,
   createNote,
+  createTag,
+  deleteCollection,
   deleteNote,
   DuplicateCollectionError,
   NoteNotFoundError,
-  removeTagFromNote,
   renameCollection,
-  setNoteCollection,
   setNotePinned,
+  setNoteTags,
   setTagColor,
   TagNotFoundError,
   updateNote,
@@ -30,15 +30,44 @@ export type FormState =
 
 export type DeleteState = { error: string } | undefined;
 
+// Server actions are public endpoints, so everything the form sent is checked
+// here. An empty collection_id means "No collection". A bad collection or tag id
+// comes back as `error` instead of being passed on to the database.
 function readFields(formData: FormData) {
   const rawTitle = String(formData.get("title") ?? "");
   const rawContent = String(formData.get("content") ?? "");
   const title = rawTitle.trim();
   const content = rawContent.trim();
+  const values = { title: rawTitle, content: rawContent };
+
+  const rawCollectionId = String(formData.get("collection_id") ?? "");
+  if (rawCollectionId !== "" && !isUuid(rawCollectionId)) {
+    return { error: "That collection is not valid.", values };
+  }
+
+  const tagIds: number[] = [];
+  for (const raw of formData.getAll("tag_id")) {
+    const id = typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : NaN;
+    if (!Number.isSafeInteger(id)) return { error: "That tag is not valid.", values };
+    tagIds.push(id);
+  }
+
+  const newTags = [
+    ...new Set(
+      formData
+        .getAll("new_tag")
+        .map((raw) => String(raw).trim().toLowerCase())
+        .filter((name) => name !== ""),
+    ),
+  ];
+
   return {
     title,
     content: content === "" ? null : content,
-    values: { title: rawTitle, content: rawContent },
+    collectionId: rawCollectionId === "" ? null : rawCollectionId,
+    tagIds: [...new Set(tagIds)],
+    newTags,
+    values,
   };
 }
 
@@ -57,13 +86,26 @@ export async function createNoteAction(
   formData: FormData,
 ): Promise<FormState> {
   await requireUser();
-  const { title, content, values } = readFields(formData);
+  const fields = readFields(formData);
+  if ("error" in fields) return { error: fields.error, values: fields.values };
+  const { title, content, collectionId, tagIds, newTags, values } = fields;
   if (!title) return { error: "Title is required.", values };
 
+  let noteId: number | undefined;
   try {
-    await createNote({ title, content });
+    noteId = await createNote({ title, content, collectionId });
+    await setNoteTags(noteId, tagIds, newTags);
   } catch (e) {
     console.error("createNoteAction failed:", e);
+    // There are no transactions, so undo the half-saved note. Otherwise the user
+    // would fix the error, press Create again and end up with two notes.
+    if (noteId !== undefined) {
+      try {
+        await deleteNote(noteId);
+      } catch (undoError) {
+        console.error("createNoteAction could not undo the note:", undoError);
+      }
+    }
     return { error: errorMessage(e, "Could not save the note. Please try again."), values };
   }
   revalidatePath("/", "layout");
@@ -76,11 +118,14 @@ export async function updateNoteAction(
   formData: FormData,
 ): Promise<FormState> {
   await requireUser();
-  const { title, content, values } = readFields(formData);
+  const fields = readFields(formData);
+  if ("error" in fields) return { error: fields.error, values: fields.values };
+  const { title, content, collectionId, tagIds, newTags, values } = fields;
   if (!title) return { error: "Title is required.", values };
 
   try {
-    await updateNote(id, { title, content });
+    await updateNote(id, { title, content, collectionId });
+    await setNoteTags(id, tagIds, newTags);
   } catch (e) {
     console.error("updateNoteAction failed:", e);
     return { error: errorMessage(e, "Could not save the note. Please try again."), values };
@@ -93,8 +138,6 @@ export async function updateNoteAction(
 export type CollectionFormState =
   | { error?: string; value?: string; saved?: number }
   | undefined;
-
-export type SetCollectionState = { error: string } | undefined;
 
 export async function createCollectionAction(
   _prev: CollectionFormState,
@@ -114,6 +157,26 @@ export async function createCollectionAction(
     }
     console.error("createCollectionAction failed:", e);
     return { error: "Could not create the collection. Please try again.", value: raw };
+  }
+  // The sidebar is on every page, so refresh the whole layout.
+  revalidatePath("/", "layout");
+  return { saved: Date.now() };
+}
+
+export async function createTagAction(
+  _prev: CollectionFormState,
+  formData: FormData,
+): Promise<CollectionFormState> {
+  await requireUser();
+  const raw = String(formData.get("name") ?? "");
+  const name = raw.trim().toLowerCase();
+  if (name === "") return { error: "Tag name is required.", value: raw };
+
+  try {
+    await createTag(name);
+  } catch (e) {
+    console.error("createTagAction failed:", e);
+    return { error: "Could not create the tag. Please try again.", value: raw };
   }
   // The sidebar is on every page, so refresh the whole layout.
   revalidatePath("/", "layout");
@@ -152,22 +215,23 @@ export async function renameCollectionAction(
   return { saved: Date.now() };
 }
 
-// An empty collectionId means "No collection".
-export async function setNoteCollectionAction(
-  noteId: number,
-  collectionId: string,
-): Promise<SetCollectionState> {
+export type DeleteCollectionState = { error: string } | undefined;
+
+// The collection's notes are kept: the database moves them to "Uncollected".
+export async function deleteCollectionAction(
+  id: string,
+): Promise<DeleteCollectionState> {
   await requireUser();
-  if (collectionId !== "" && !isUuid(collectionId)) {
-    return { error: "That collection is not valid." };
-  }
+  // Server actions are public endpoints, so check what the client sent.
+  if (!isUuid(id)) return { error: "That collection is not valid." };
 
   try {
-    await setNoteCollection(noteId, collectionId === "" ? null : collectionId);
+    await deleteCollection(id);
   } catch (e) {
-    console.error("setNoteCollectionAction failed:", e);
-    return { error: errorMessage(e, "Could not change the collection. Please try again.") };
+    console.error("deleteCollectionAction failed:", e);
+    return { error: errorMessage(e, "Could not delete the collection. Please try again.") };
   }
+  // The sidebar is on every page, so refresh the whole layout.
   revalidatePath("/", "layout");
 }
 
@@ -192,41 +256,6 @@ export async function setNotePinnedAction(
   revalidatePath("/", "layout");
 }
 
-// Always set: `ok` on success, `error` on any failure.
-export type TagState = { ok: true } | { error: string };
-
-export async function addTagToNoteAction(
-  noteId: number,
-  name: string,
-): Promise<TagState> {
-  await requireUser();
-  if (name.trim() === "") return { error: "Tag name is required." };
-
-  try {
-    await addTagToNote(noteId, name);
-  } catch (e) {
-    console.error("addTagToNoteAction failed:", e);
-    return { error: errorMessage(e, "Could not add the tag. Please try again.") };
-  }
-  revalidatePath("/", "layout");
-  return { ok: true };
-}
-
-export async function removeTagFromNoteAction(
-  noteId: number,
-  tagId: number,
-): Promise<TagState> {
-  await requireUser();
-  try {
-    await removeTagFromNote(noteId, tagId);
-  } catch (e) {
-    console.error("removeTagFromNoteAction failed:", e);
-    return { error: errorMessage(e, "Could not remove the tag. Please try again.") };
-  }
-  revalidatePath("/", "layout");
-  return { ok: true };
-}
-
 export type TagColorState = { error: string } | undefined;
 
 export async function setTagColorAction(
@@ -248,7 +277,12 @@ export async function setTagColorAction(
   revalidatePath("/", "layout");
 }
 
-export async function deleteNoteAction(id: number): Promise<DeleteState> {
+// The note page leaves for the list after a delete. The list passes
+// redirectToList = false, so the current filters and search stay in the URL.
+export async function deleteNoteAction(
+  id: number,
+  redirectToList = true,
+): Promise<DeleteState> {
   await requireUser();
   try {
     await deleteNote(id);
@@ -257,5 +291,5 @@ export async function deleteNoteAction(id: number): Promise<DeleteState> {
     return { error: errorMessage(e, "Could not delete the note. Please try again.") };
   }
   revalidatePath("/", "layout");
-  redirect("/notes");
+  if (redirectToList) redirect("/notes");
 }
