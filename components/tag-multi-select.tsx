@@ -125,6 +125,7 @@ export function TagMultiSelect({ tags, initialSelectedIds }: Props) {
       </DropdownMenu>
       <div className="mt-1 flex items-center gap-2">
         <input
+          id="new-tag-name"
           aria-label="New tag name"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

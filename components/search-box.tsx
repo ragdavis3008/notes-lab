@@ -72,6 +72,7 @@ export function SearchBox() {
         className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/50"
       />
       <input
+        id="search-notes"
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}

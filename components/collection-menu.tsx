@@ -13,8 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Sits next to a collection's name, outside the group's <summary>, so clicking
-// it never opens or closes the group and never navigates.
+// Sits next to a collection's name, outside the group's toggle button and link
+// (components/collapsible-group.tsx), so clicking it never opens or closes the
+// group and never navigates.
 export function CollectionMenu({ id, name }: { id: string; name: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
