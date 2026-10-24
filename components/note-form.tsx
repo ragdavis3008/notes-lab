@@ -14,6 +14,7 @@ type Props = {
   initialContent?: string;
   initialCollectionId?: string | null;
   initialTagIds?: number[];
+  initialDueDate?: string; // YYYY-MM-DD, or "" for none
   submitLabel: string;
 };
 
@@ -26,6 +27,7 @@ export function NoteForm({
   initialContent = "",
   initialCollectionId = null,
   initialTagIds = [],
+  initialDueDate = "",
   submitLabel,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
@@ -68,6 +70,18 @@ export function NoteForm({
             </option>
           ))}
         </select>
+      </div>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="due-date" className="text-sm font-medium">
+          Due date <span className="text-foreground/50">(optional)</span>
+        </label>
+        <input
+          id="due-date"
+          name="due_date"
+          type="date"
+          defaultValue={state?.values?.dueDate ?? initialDueDate}
+          className="field"
+        />
       </div>
       <TagMultiSelect tags={tags} initialSelectedIds={initialTagIds} />
       <div className="flex flex-col gap-1">

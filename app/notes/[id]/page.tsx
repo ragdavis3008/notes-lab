@@ -63,6 +63,7 @@ async function NoteEditor({ params }: { params: Promise<{ id: string }> }) {
         initialContent={note.content ?? ""}
         initialCollectionId={note.collection_id}
         initialTagIds={noteTags.map((t) => t.id)}
+        initialDueDate={note.due_date ?? ""}
         submitLabel="Save changes"
       />
       <div className="mt-8 border-t border-border pt-6">

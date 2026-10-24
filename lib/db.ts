@@ -21,7 +21,7 @@ export class TagNotFoundError extends Error {
 // search_vector column, which the app never uses.
 // Must be updated whenever a column is added to the Note type.
 const NOTE_COLUMNS =
-  "id, created_at, title, content, updated_at, collection_id, pinned";
+  "id, created_at, title, content, updated_at, collection_id, pinned, due_date";
 
 // Adds the full-text search filter to a notes query. Empty or missing `search`
 // means no search: the query is returned unchanged. Returns null when the text
@@ -70,11 +70,13 @@ export async function getNote(id: number): Promise<Note | null> {
   return data;
 }
 
-// A null collectionId leaves the note uncollected. Returns the new note's id.
+// A null collectionId leaves the note uncollected; a null dueDate means no due date
+// (YYYY-MM-DD otherwise). Returns the new note's id.
 export async function createNote(input: {
   title: string;
   content: string | null;
   collectionId: string | null;
+  dueDate: string | null;
 }): Promise<number> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -83,6 +85,7 @@ export async function createNote(input: {
       title: input.title,
       content: input.content,
       collection_id: input.collectionId,
+      due_date: input.dueDate,
     })
     .select("id");
 
@@ -96,7 +99,12 @@ export async function createNote(input: {
 
 export async function updateNote(
   id: number,
-  input: { title: string; content: string | null; collectionId: string | null },
+  input: {
+    title: string;
+    content: string | null;
+    collectionId: string | null;
+    dueDate: string | null;
+  },
 ): Promise<void> {
   const supabase = await createClient();
   // select() returns the changed rows, so an empty result means no row matched.
@@ -106,6 +114,7 @@ export async function updateNote(
       title: input.title,
       content: input.content,
       collection_id: input.collectionId,
+      due_date: input.dueDate,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

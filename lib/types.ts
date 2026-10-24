@@ -9,6 +9,7 @@ export type Note = {
   updated_at: string | null;
   collection_id: string | null; // uuid
   pinned: boolean; // pinned notes are listed first
+  due_date: string | null; // date only, YYYY-MM-DD
 };
 
 // Matches the `tags` table in docs/database-schema.md.
