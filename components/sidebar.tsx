@@ -5,6 +5,7 @@ import { CollectionMenu } from "@/components/collection-menu";
 import { NewCollectionForm } from "@/components/new-collection-form";
 import { NewTagForm } from "@/components/new-tag-form";
 import { TagColorPicker } from "@/components/tag-color-picker";
+import { TagMenu } from "@/components/tag-menu";
 import { TagDot } from "@/components/tag-pill";
 import { requireUser } from "@/lib/auth";
 import {
@@ -232,13 +233,15 @@ function TagList({
             ? tagIds.filter((id) => id !== tag.id)
             : [...tagIds, tag.id];
           return (
-            <li key={tag.id} className="flex flex-wrap items-center">
+            <li key={tag.id} className="relative flex flex-wrap items-center">
               {/* The colour picker is the tag's one dot: click it to change the colour. */}
               <TagColorPicker tagId={tag.id} tagName={tag.name} color={tag.color} />
+              {/* pr-9 keeps the name and count clear of the ⋯ button, which is as
+                  tall as this row. See components/tag-menu.tsx. */}
               <Link
                 href={filterHref(view, next, search)}
                 aria-current={isSelected ? "true" : undefined}
-                className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${isSelected ? activeLink : ""}`}
+                className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 pr-9 ${isSelected ? activeLink : ""}`}
               >
                 <span className="min-w-0 flex-1 truncate">
                   {isSelected ? "✓ " : ""}
@@ -248,6 +251,7 @@ function TagList({
                   {noteCounts.get(tag.id) ?? 0}
                 </span>
               </Link>
+              <TagMenu id={tag.id} name={tag.name} />
             </li>
           );
         })}

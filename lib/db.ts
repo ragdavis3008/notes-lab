@@ -17,6 +17,14 @@ export class TagNotFoundError extends Error {
   }
 }
 
+// Thrown when another tag already has this name. The unique index is
+// case-insensitive, so "Work" and "work" count as the same name.
+export class DuplicateTagError extends Error {
+  constructor() {
+    super("A tag with this name already exists.");
+  }
+}
+
 // Note columns to read. A plain select() would also return the generated
 // search_vector column, which the app never uses.
 // Must be updated whenever a column is added to the Note type.
@@ -336,6 +344,37 @@ export async function setTagColor(id: number, color: TagColor): Promise<void> {
   const { data, error } = await supabase
     .from("tags")
     .update({ color })
+    .eq("id", id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new TagNotFoundError();
+}
+
+// Changes only the name, so the colour stays. `name` is already trimmed and lowercase.
+export async function renameTag(id: number, name: string): Promise<void> {
+  const supabase = await createClient();
+  // select() returns the changed rows, so an empty result means no row matched.
+  const { data, error } = await supabase
+    .from("tags")
+    .update({ name })
+    .eq("id", id)
+    .select("id");
+
+  // 23505 = Postgres unique_violation (another tag has this name).
+  if (error?.code === "23505") throw new DuplicateTagError();
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new TagNotFoundError();
+}
+
+// Deletes only the tag row. note_tags.tag_id is a foreign key with ON DELETE
+// CASCADE (docs/database-schema.md), so the database removes the tag from its notes
+// and keeps the notes. The app never deletes notes here.
+export async function deleteTag(id: number): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tags")
+    .delete()
     .eq("id", id)
     .select("id");
 

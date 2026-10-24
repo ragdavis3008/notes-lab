@@ -10,9 +10,12 @@ import {
   createTag,
   deleteCollection,
   deleteNote,
+  deleteTag,
   DuplicateCollectionError,
+  DuplicateTagError,
   NoteNotFoundError,
   renameCollection,
+  renameTag,
   setNoteCompleted,
   setNotePinned,
   setNoteTags,
@@ -23,6 +26,7 @@ import {
 import { parseCollectionName } from "@/lib/collection-name";
 import { parseDueDate } from "@/lib/due-date";
 import { isTagColor } from "@/lib/tag-colors";
+import { parseTagName } from "@/lib/tag-name";
 import { isUuid } from "@/lib/uuid";
 
 // `values` echoes what the user typed so the form can keep it after an error.
@@ -303,6 +307,52 @@ export async function setTagColorAction(
     console.error("setTagColorAction failed:", e);
     return { error: errorMessage(e, "Could not change the colour. Please try again.") };
   }
+  revalidatePath("/", "layout");
+}
+
+export async function renameTagAction(
+  id: number,
+  _prev: CollectionFormState,
+  formData: FormData,
+): Promise<CollectionFormState> {
+  await requireUser();
+  const raw = String(formData.get("name") ?? "");
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(id)) return { error: "That tag is not valid.", value: raw };
+
+  const parsed = parseTagName(raw);
+  if ("error" in parsed) return { error: parsed.error, value: raw };
+
+  try {
+    await renameTag(id, parsed.name);
+  } catch (e) {
+    // A duplicate name or a deleted tag is expected, not a failure worth logging.
+    if (e instanceof DuplicateTagError || e instanceof TagNotFoundError) {
+      return { error: e.message, value: raw };
+    }
+    console.error("renameTagAction failed:", e);
+    return { error: "Could not rename the tag. Please try again.", value: raw };
+  }
+  // The sidebar is on every page, so refresh the whole layout.
+  revalidatePath("/", "layout");
+  return { saved: Date.now() };
+}
+
+export type DeleteTagState = { error: string } | undefined;
+
+// The tag's notes are kept: the database removes the tag from them.
+export async function deleteTagAction(id: number): Promise<DeleteTagState> {
+  await requireUser();
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(id)) return { error: "That tag is not valid." };
+
+  try {
+    await deleteTag(id);
+  } catch (e) {
+    console.error("deleteTagAction failed:", e);
+    return { error: errorMessage(e, "Could not delete the tag. Please try again.") };
+  }
+  // The sidebar is on every page, so refresh the whole layout.
   revalidatePath("/", "layout");
 }
 
