@@ -66,10 +66,10 @@ describe("isDueWithin7Days", () => {
 });
 
 describe("formatDue", () => {
-  it("writes day and short month", () => {
-    expect(formatDue("2026-10-28")).toBe("28 Oct");
-    expect(formatDue("2026-01-05")).toBe("5 Jan");
-    expect(formatDue("2026-09-01")).toBe("1 Sep");
+  it("writes dd/mm/yyyy", () => {
+    expect(formatDue("2026-10-28")).toBe("28/10/2026");
+    expect(formatDue("2026-01-05")).toBe("05/01/2026");
+    expect(formatDue("2026-09-01")).toBe("01/09/2026");
   });
 });
 

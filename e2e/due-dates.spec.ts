@@ -83,10 +83,11 @@ test('due date filter chips split overdue from upcoming, and overdue is red', as
 
   await chip(page, 'All').click();
   await expect(noteLink(page, overdueTitle)).toBeVisible();
+  const [year, month, day] = yesterday.iso.split('-');
   const overdueDate = page
     .getByRole('listitem')
     .filter({ hasText: overdueTitle })
-    .getByText(new RegExp(`^Due ${yesterday.day} [A-Za-z]+`));
+    .getByText(`Due ${day}/${month}/${year}`, { exact: true });
   await expect(overdueDate).toBeVisible();
   expect(await isRed(overdueDate)).toBe(true);
 });

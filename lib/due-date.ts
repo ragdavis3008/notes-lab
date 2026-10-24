@@ -3,11 +3,6 @@
 
 export type DueFilter = "all" | "overdue" | "week";
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
 // True for a real calendar date written as YYYY-MM-DD ("2026-02-30" is not).
 export function isDateString(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -49,10 +44,10 @@ export function isDueWithin7Days(dueDate: string | null, today: string): boolean
   return dueDate !== null && dueDate >= today && dueDate <= addDays(today, 7);
 }
 
-// "28 Oct". Written by hand so the server and the browser always agree.
+// "28/10/2026". Written by hand so the server and the browser always agree.
 export function formatDue(dueDate: string): string {
-  const [, month, day] = dueDate.split("-").map(Number);
-  return `${day} ${MONTHS[month - 1]}`;
+  const [year, month, day] = dueDate.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 // Reads ?due=. Anything unknown means "all".
