@@ -11,6 +11,7 @@ export type Note = {
   pinned: boolean; // pinned notes are listed first
   due_date: string | null; // date only, YYYY-MM-DD
   completed_at: string | null; // null = not completed
+  deleted_at: string | null; // null = not deleted; otherwise the note is in Deleted
 };
 
 // Matches the `tags` table in docs/database-schema.md.

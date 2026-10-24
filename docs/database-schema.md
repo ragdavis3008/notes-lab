@@ -3,7 +3,7 @@
 Source of truth for the Supabase tables. Tables are created and changed in the
 Supabase dashboard only. Do not create, alter or drop tables from code.
 
-Last checked against the dashboard: 2026-10-24 (added notes.completed_at)
+Last checked against the dashboard: 2026-10-24 (added notes.deleted_at and the purge-deleted-notes Cron job)
 
 ## Relationships in plain English
 - A note can belong to one collection. A collection can contain many notes.
@@ -12,7 +12,9 @@ Last checked against the dashboard: 2026-10-24 (added notes.completed_at)
 - A note can have many tags. A tag can be on many notes. The `note_tags` table
   stores one row per note–tag pair.
 - Deleting a collection keeps its notes; they become uncollected.
-- Deleting a note or a tag removes its rows in `note_tags` automatically.
+- Deleting a note or a tag removes its rows in `note_tags` automatically. The app does
+  not delete notes for good: it moves them to Deleted (`deleted_at`), and a daily
+  Supabase Cron job deletes them after 30 days (see the deleted notes rule below).
 
 ## Tables
 
@@ -35,6 +37,7 @@ Last checked against the dashboard: 2026-10-24 (added notes.completed_at)
 | pinned | bool | false | yes | pinned notes stay at the top of their list |
 | due_date | date | — | no | optional due date, date only (YYYY-MM-DD), no time or time zone |
 | completed_at | timestamptz | — | no | when the note was marked completed; null means not completed |
+| deleted_at | timestamptz | — | no | when the note was moved to Deleted; null means not deleted |
 | search_vector | tsvector | generated | — | generated from title (weight A) and content (weight B), English config; GIN index notes_search_vector_idx. Read-only: never insert or update it |
 
 ### tags
@@ -78,6 +81,19 @@ Primary key: (note_id, tag_id). There is no separate id column.
   the pinned group, the due date chips and counts, and the sidebar counts for
   collections and tags. They are listed only on the Completed page, newest completed
   first. Editing or deleting a completed note works as for any other note.
+- Deleted notes: deleting a note in the app sets `notes.deleted_at` to the current time
+  and keeps the row, with its collection, tags, pin and completed state. Like pinning,
+  this does not change `updated_at`. Restoring sets `deleted_at` back to null, so the
+  note returns exactly as it was; if its collection was deleted meanwhile, the
+  database has already made it uncollected. Deleted notes are left out of every other
+  list, search, count and chip, and cannot be pinned, completed or edited (those
+  updates only match rows where `deleted_at` is null). They are listed only on the
+  Deleted page, most recently deleted first, with "Deletes in N days". The app has no
+  way to delete a note for good, except the hard delete that undoes a half-saved
+  new note. After 30 days the Supabase Cron job `purge-deleted-notes` (daily at 03:00,
+  set up in the dashboard) runs
+  `delete from public.notes where deleted_at < now() - interval '30 days'`; the
+  `note_tags` rows go with each note (ON DELETE CASCADE).
 - Tag colours come from the fixed palette above. New tags start as gray. The app maps
   each colour name to its own Tailwind classes; the database stores only the name.
 - Search uses full-text search on notes.search_vector with .textSearch(), with prefix

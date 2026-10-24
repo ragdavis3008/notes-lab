@@ -22,7 +22,7 @@ export function DeleteNoteButton({ id }: { id: number }) {
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-red-600/10 p-4 text-sm">
-      <span>Delete this note? This cannot be undone.</span>
+      <span>Move this note to Deleted? It will be removed after 30 days.</span>
       <button
         type="button"
         disabled={pending}
@@ -35,7 +35,7 @@ export function DeleteNoteButton({ id }: { id: number }) {
         }
         className="rounded-full bg-red-600 px-4 py-1.5 text-white disabled:opacity-50"
       >
-        {pending ? "Deleting..." : "Yes, delete"}
+        {pending ? "Moving..." : "Move to Deleted"}
       </button>
       <button
         type="button"

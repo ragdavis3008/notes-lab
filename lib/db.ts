@@ -29,7 +29,7 @@ export class DuplicateTagError extends Error {
 // search_vector column, which the app never uses.
 // Must be updated whenever a column is added to the Note type.
 const NOTE_COLUMNS =
-  "id, created_at, title, content, updated_at, collection_id, pinned, due_date, completed_at";
+  "id, created_at, title, content, updated_at, collection_id, pinned, due_date, completed_at, deleted_at";
 
 // Adds the full-text search filter to a notes query. Empty or missing `search`
 // means no search: the query is returned unchanged. Returns null when the text
@@ -50,13 +50,18 @@ function applySearch<
 }
 
 // The notes lists below leave out completed notes (completed_at is not null); they
-// only appear in listCompletedNotes.
+// only appear in listCompletedNotes. They also leave out deleted notes
+// (deleted_at is not null), which only appear in listDeletedNotes.
 // `search` is trimmed text; empty or missing means no search. Text with no
 // searchable words matches no notes.
 export async function listNotes(search?: string): Promise<Note[]> {
   const supabase = await createClient();
   const query = applySearch(
-    supabase.from("notes").select(NOTE_COLUMNS).is("completed_at", null),
+    supabase
+      .from("notes")
+      .select(NOTE_COLUMNS)
+      .is("completed_at", null)
+      .is("deleted_at", null),
     search,
   );
   if (query === null) return [];
@@ -70,13 +75,14 @@ export async function listNotes(search?: string): Promise<Note[]> {
   return data;
 }
 
-// Returns null when no note has this id.
+// Returns null when no note has this id, or when the note is in Deleted.
 export async function getNote(id: number): Promise<Note | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
     .select(NOTE_COLUMNS)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -120,7 +126,8 @@ export async function updateNote(
   },
 ): Promise<void> {
   const supabase = await createClient();
-  // select() returns the changed rows, so an empty result means no row matched.
+  // select() returns the changed rows, so an empty result means no row matched. A
+  // deleted note matches nothing, so it cannot be edited.
   const { data, error } = await supabase
     .from("notes")
     .update({
@@ -131,6 +138,7 @@ export async function updateNote(
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .is("deleted_at", null)
     .select("id");
 
   // 23503 = Postgres foreign_key_violation (collection_id points to nothing).
@@ -219,7 +227,8 @@ export async function listNotesByCollection(
       .from("notes")
       .select(NOTE_COLUMNS)
       .eq("collection_id", collectionId)
-      .is("completed_at", null),
+      .is("completed_at", null)
+      .is("deleted_at", null),
     search,
   );
   if (query === null) return [];
@@ -241,7 +250,8 @@ export async function listUncollectedNotes(search?: string): Promise<Note[]> {
       .from("notes")
       .select(NOTE_COLUMNS)
       .is("collection_id", null)
-      .is("completed_at", null),
+      .is("completed_at", null)
+      .is("deleted_at", null),
     search,
   );
   if (query === null) return [];
@@ -265,19 +275,21 @@ export async function setNotePinned(
     .from("notes")
     .update({ pinned })
     .eq("id", id)
+    .is("deleted_at", null)
     .select("id");
 
   if (error) throw new Error(error.message);
   if (data.length === 0) throw new NoteNotFoundError();
 }
 
-// Completed notes, the most recently completed first.
+// Completed notes (not deleted), the most recently completed first.
 export async function listCompletedNotes(): Promise<Note[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
     .select(NOTE_COLUMNS)
     .not("completed_at", "is", null)
+    .is("deleted_at", null)
     .order("completed_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -289,7 +301,8 @@ export async function countCompletedNotes(): Promise<number> {
   const { count, error } = await supabase
     .from("notes")
     .select("id", { count: "exact", head: true })
-    .not("completed_at", "is", null);
+    .not("completed_at", "is", null)
+    .is("deleted_at", null);
 
   if (error) throw new Error(error.message);
   return count ?? 0;
@@ -306,13 +319,71 @@ export async function setNoteCompleted(
     .from("notes")
     .update({ completed_at: completed ? new Date().toISOString() : null })
     .eq("id", id)
+    .is("deleted_at", null)
     .select("id");
 
   if (error) throw new Error(error.message);
   if (data.length === 0) throw new NoteNotFoundError();
 }
 
-export async function deleteNote(id: number): Promise<void> {
+// Deleted notes, the most recently deleted first.
+export async function listDeletedNotes(): Promise<Note[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .select(NOTE_COLUMNS)
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function countDeletedNotes(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("notes")
+    .select("id", { count: "exact", head: true })
+    .not("deleted_at", "is", null);
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+// Moves the note to Deleted: the row stays, with its tags, collection, pin and
+// completed state. Like pinning, it is not an edit, so updated_at is left alone. A
+// note that is already deleted matches nothing, so its 30 days are not restarted.
+// The Cron job purge-deleted-notes removes it for good after 30 days.
+export async function softDeleteNote(id: number): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new NoteNotFoundError();
+}
+
+// Puts a deleted note back exactly as it was. If its collection was deleted
+// meanwhile, the database has already made the note uncollected.
+export async function restoreNote(id: number): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .update({ deleted_at: null })
+    .eq("id", id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new NoteNotFoundError();
+}
+
+// Removes the row for good. Only for undoing a half-saved new note: no screen or
+// action lets a user delete a note permanently.
+export async function deleteNotePermanently(id: number): Promise<void> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")

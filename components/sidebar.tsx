@@ -11,6 +11,7 @@ import { TagDot } from "@/components/tag-pill";
 import { requireUser } from "@/lib/auth";
 import {
   countCompletedNotes,
+  countDeletedNotes,
   listCollections,
   listNotes,
   listTags,
@@ -19,7 +20,12 @@ import {
 import { filterHref } from "@/lib/filter-url";
 import type { Collection, Note, Tag } from "@/lib/types";
 
-export type SidebarSelection = "all" | "uncollected" | "completed" | (string & {});
+export type SidebarSelection =
+  | "all"
+  | "uncollected"
+  | "completed"
+  | "deleted"
+  | (string & {});
 
 // Promises, because reading searchParams/params has to happen behind Suspense.
 type Props = {
@@ -209,8 +215,9 @@ function TagList({
   if (tags.length === 0) {
     return <p className="px-3 py-1 text-foreground/60">No tags yet</p>;
   }
-  // The Completed page has no tag filter, so its tag links open the main list.
-  const view = selected === "completed" ? "all" : selected;
+  // The Completed and Deleted pages have no tag filter, so their tag links open the
+  // main list.
+  const view = selected === "completed" || selected === "deleted" ? "all" : selected;
   return (
     <>
       <p className="px-3 py-1 text-xs text-foreground/60">
@@ -279,16 +286,18 @@ async function Nav({
   let notes: Note[] = [];
   let tags: Tag[] = [];
   let completedCount = 0;
+  let deletedCount = 0;
   let tagsByNote = new Map<number, Tag[]>();
   let loadError: string | undefined;
   try {
-    // listNotes() leaves out completed notes, so the collection and tag counts
-    // below only count notes that are not completed.
-    [collections, notes, tags, completedCount] = await Promise.all([
+    // listNotes() leaves out completed and deleted notes, so the collection and tag
+    // counts below only count notes that are neither.
+    [collections, notes, tags, completedCount, deletedCount] = await Promise.all([
       listCollections(),
       listNotes(),
       listTags(),
       countCompletedNotes(),
+      countDeletedNotes(),
     ]);
     tagsByNote = await listTagsByNoteIds(notes.map((n) => n.id));
   } catch (e) {
@@ -329,6 +338,13 @@ async function Nav({
       >
         <span className="min-w-0 flex-1 truncate">Completed</span>
         <span className="shrink-0 text-xs text-foreground/50">{completedCount}</span>
+      </Link>
+      <Link
+        href="/notes/deleted"
+        className={`${linkBase} flex items-center gap-2 ${selected === "deleted" ? activeLink : ""}`}
+      >
+        <span className="min-w-0 flex-1 truncate">Deleted</span>
+        <span className="shrink-0 text-xs text-foreground/50">{deletedCount}</span>
       </Link>
       <p className={headingClass}>Collections</p>
       <NewCollectionForm />
