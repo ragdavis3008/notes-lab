@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { FormState } from "@/app/actions";
+import { DueDateInput } from "@/components/due-date-input";
 import { TagMultiSelect } from "@/components/tag-multi-select";
 import type { Collection, Tag } from "@/lib/types";
 
@@ -14,6 +15,7 @@ type Props = {
   initialContent?: string;
   initialCollectionId?: string | null;
   initialTagIds?: number[];
+  initialDueDate?: string; // YYYY-MM-DD, or "" for none
   submitLabel: string;
 };
 
@@ -26,6 +28,7 @@ export function NoteForm({
   initialContent = "",
   initialCollectionId = null,
   initialTagIds = [],
+  initialDueDate = "",
   submitLabel,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
@@ -68,6 +71,15 @@ export function NoteForm({
             </option>
           ))}
         </select>
+      </div>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="due-date" className="text-sm font-medium">
+          Due date <span className="text-foreground/50">(optional)</span>
+        </label>
+        <DueDateInput
+          id="due-date"
+          initialValue={state?.values?.dueDate ?? initialDueDate}
+        />
       </div>
       <TagMultiSelect tags={tags} initialSelectedIds={initialTagIds} />
       <div className="flex flex-col gap-1">

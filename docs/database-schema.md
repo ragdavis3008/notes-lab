@@ -3,7 +3,7 @@
 Source of truth for the Supabase tables. Tables are created and changed in the
 Supabase dashboard only. Do not create, alter or drop tables from code.
 
-Last checked against the dashboard: 2026-10-14
+Last checked against the dashboard: 2026-10-23 (added notes.due_date)
 
 ## Relationships in plain English
 - A note can belong to one collection. A collection can contain many notes.
@@ -33,6 +33,7 @@ Last checked against the dashboard: 2026-10-14
 | updated_at | timestamptz | now() | no | the app must set this to the current time on every update |
 | collection_id | uuid | — | no | foreign key → collections.id, on delete SET NULL |
 | pinned | bool | false | yes | pinned notes stay at the top of their list |
+| due_date | date | — | no | optional due date, date only (YYYY-MM-DD), no time or time zone |
 | search_vector | tsvector | generated | — | generated from title (weight A) and content (weight B), English config; GIN index notes_search_vector_idx. Read-only: never insert or update it |
 
 ### tags
@@ -66,6 +67,10 @@ Primary key: (note_id, tag_id). There is no separate id column.
   the selected tags, not notes that have any one of them.
 - Every notes list shows pinned notes first, then the rest, each group ordered by
   updated_at, newest first. Pinning or unpinning a note does not change updated_at.
+- Due dates: `notes.due_date` is optional and holds a plain date. A note is overdue
+  when its due date is before today, and due soon when it is today up to 7 days from
+  today (both ends included). Today is the server's local date. Changing the due date
+  counts as an edit, so it sets `updated_at` like a title or content change.
 - Tag colours come from the fixed palette above. New tags start as gray. The app maps
   each colour name to its own Tailwind classes; the database stores only the name.
 - Search uses full-text search on notes.search_vector with .textSearch(), with prefix

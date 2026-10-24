@@ -20,12 +20,13 @@ import {
   updateNote,
 } from "@/lib/db";
 import { parseCollectionName } from "@/lib/collection-name";
+import { parseDueDate } from "@/lib/due-date";
 import { isTagColor } from "@/lib/tag-colors";
 import { isUuid } from "@/lib/uuid";
 
 // `values` echoes what the user typed so the form can keep it after an error.
 export type FormState =
-  | { error?: string; values?: { title: string; content: string } }
+  | { error?: string; values?: { title: string; content: string; dueDate: string } }
   | undefined;
 
 export type DeleteState = { error: string } | undefined;
@@ -38,7 +39,12 @@ function readFields(formData: FormData) {
   const rawContent = String(formData.get("content") ?? "");
   const title = rawTitle.trim();
   const content = rawContent.trim();
-  const values = { title: rawTitle, content: rawContent };
+  const rawDueDate = String(formData.get("due_date") ?? "");
+  const values = { title: rawTitle, content: rawContent, dueDate: rawDueDate };
+
+  // An empty due date means none; anything else must be a real YYYY-MM-DD date.
+  const dueDate = parseDueDate(rawDueDate);
+  if (dueDate === undefined) return { error: "That due date is not valid.", values };
 
   const rawCollectionId = String(formData.get("collection_id") ?? "");
   if (rawCollectionId !== "" && !isUuid(rawCollectionId)) {
@@ -65,6 +71,7 @@ function readFields(formData: FormData) {
     title,
     content: content === "" ? null : content,
     collectionId: rawCollectionId === "" ? null : rawCollectionId,
+    dueDate,
     tagIds: [...new Set(tagIds)],
     newTags,
     values,
@@ -88,12 +95,12 @@ export async function createNoteAction(
   await requireUser();
   const fields = readFields(formData);
   if ("error" in fields) return { error: fields.error, values: fields.values };
-  const { title, content, collectionId, tagIds, newTags, values } = fields;
+  const { title, content, collectionId, dueDate, tagIds, newTags, values } = fields;
   if (!title) return { error: "Title is required.", values };
 
   let noteId: number | undefined;
   try {
-    noteId = await createNote({ title, content, collectionId });
+    noteId = await createNote({ title, content, collectionId, dueDate });
     await setNoteTags(noteId, tagIds, newTags);
   } catch (e) {
     console.error("createNoteAction failed:", e);
@@ -120,11 +127,11 @@ export async function updateNoteAction(
   await requireUser();
   const fields = readFields(formData);
   if ("error" in fields) return { error: fields.error, values: fields.values };
-  const { title, content, collectionId, tagIds, newTags, values } = fields;
+  const { title, content, collectionId, dueDate, tagIds, newTags, values } = fields;
   if (!title) return { error: "Title is required.", values };
 
   try {
-    await updateNote(id, { title, content, collectionId });
+    await updateNote(id, { title, content, collectionId, dueDate });
     await setNoteTags(id, tagIds, newTags);
   } catch (e) {
     console.error("updateNoteAction failed:", e);

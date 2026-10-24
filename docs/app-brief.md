@@ -13,7 +13,8 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
 ## Current status
 - Done: notes, collections, tags, search, pinned notes, colour-coded tags, full-text
   search, rename a collection (built test-first), automated tests, email and password
-  authentication (Sprint 2.6, branch `feature/add-auth`).
+  authentication (Sprint 2.6, branch `feature/add-auth`), due dates with filter chips
+  (built test-first, branch `due-dates`).
 
 ## Tech stack
 - Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui components
@@ -32,6 +33,11 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
 - Search by title and content (full-text: whole words and word beginnings)
 - Collection, tag and search filters combine and live in the URL, so a filtered view
   survives a reload
+- Optional due date on a note (date only, set with the browser's date picker). Cards
+  show "Due 28 Oct", in red when overdue.
+- Due date chips above the search bar: "Overdue", "Due in 7 days" and "All", each with
+  a count. They narrow the current collection, tag and search view and live in the
+  URL (`?due=overdue` or `?due=week`).
 - Pinned notes always appear at the top of every list
 - Clear empty-state messages instead of blank screens
 

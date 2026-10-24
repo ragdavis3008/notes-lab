@@ -117,6 +117,14 @@ describe("filterHref", () => {
     );
   });
 
+  it("adds the due date chip, except for all", () => {
+    expect(filterHref("all", [], "", "overdue")).toBe("/notes?due=overdue");
+    expect(filterHref("all", [], "", "all")).toBe("/notes");
+    expect(filterHref("uncollected", [4], "todo", "week")).toBe(
+      "/notes?collection=uncollected&tag=4&q=todo&due=week",
+    );
+  });
+
   it("round-trips through the parsers", () => {
     const href = filterHref("all", [8, 9], "  x y ");
     const params = new URL(href, "http://localhost").searchParams;
