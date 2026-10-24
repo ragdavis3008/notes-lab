@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { removeTestData } from './helpers/db-cleanup';
 
 // Unique per run, so tests never touch notes that belong to someone else.
 const runId = Date.now().toString(36);
@@ -31,23 +32,14 @@ function noteLink(page: Page, title: string) {
 
 async function deleteFromList(page: Page, title: string) {
   await page.getByRole('button', { name: `Delete note ${title}` }).click();
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Move to Deleted' }).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
 }
 
-// Removes whatever is left of the notes this run created, even after a failure.
-test.afterEach(async ({ page }) => {
-  await page.goto('/notes');
-  // The list streams in after the page loads. Counting buttons before it has
-  // rendered finds none and skips the cleanup, so wait for the list heading first.
-  await expect(page.getByRole('heading', { level: 1, name: 'All notes' })).toBeVisible();
-  for (const title of created) {
-    const button = page.getByRole('button', { name: `Delete note ${title}` });
-    if ((await button.count()) > 0) {
-      await deleteFromList(page, title);
-      await expect(button).toHaveCount(0);
-    }
-  }
+// Deleting in the app only moves a note to the Deleted tab, so the notes this run
+// created are removed permanently in the database, even after a failure.
+test.afterEach(async () => {
+  await removeTestData({ noteTitles: created });
   created.length = 0;
 });
 
@@ -73,7 +65,7 @@ test('edit a note body and keep it after a refresh', async ({ page }) => {
   await expect(page.getByLabel('Content')).toHaveValue(edited);
 });
 
-test('delete a note and see it gone after a refresh', async ({ page }) => {
+test('deleting a note moves it from All notes to the Deleted page', async ({ page }) => {
   const title = uniqueTitle('delete');
   await createNote(page, title, 'to be deleted');
   await expect(noteLink(page, title)).toBeVisible();
@@ -81,5 +73,10 @@ test('delete a note and see it gone after a refresh', async ({ page }) => {
   await deleteFromList(page, title);
   await page.reload();
 
+  await expect(page.getByRole('heading', { level: 1, name: 'All notes' })).toBeVisible();
   await expect(page.getByRole('link', { name: title })).toHaveCount(0);
+
+  await page.goto('/notes/deleted');
+  await expect(page.getByRole('heading', { level: 1, name: 'Deleted' })).toBeVisible();
+  await expect(page.getByText(title)).toBeVisible();
 });

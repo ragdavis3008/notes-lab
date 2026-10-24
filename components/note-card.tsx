@@ -80,7 +80,9 @@ export function NoteCard({ noteId, noteTitle, pinned, completed, children }: Pro
         {children}
         {confirming && (
           <ConfirmPanel
-            message="Delete this note?"
+            message="Move this note to Deleted? It will be removed after 30 days."
+            confirmLabel="Move to Deleted"
+            pendingLabel="Moving..."
             pending={pending}
             onConfirm={confirmDelete}
             onCancel={() => setConfirming(false)}

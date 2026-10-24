@@ -1,10 +1,13 @@
 "use client";
 
-// A small "are you sure?" box with Cancel and Delete. The parent decides where it
-// sits (className) and what happens on confirm. Cancel has the focus first, so
-// pressing Enter by accident does not delete anything.
+// A small "are you sure?" box with Cancel and a confirm button (Delete unless
+// confirmLabel says otherwise). The parent decides where it sits (className) and
+// what happens on confirm. Cancel has the focus first, so pressing Enter by
+// accident does not delete anything.
 export function ConfirmPanel({
   message,
+  confirmLabel = "Delete",
+  pendingLabel = "Deleting...",
   pending,
   error,
   onConfirm,
@@ -12,6 +15,8 @@ export function ConfirmPanel({
   className = "",
 }: {
   message: string;
+  confirmLabel?: string;
+  pendingLabel?: string;
   pending: boolean;
   error?: string;
   onConfirm: () => void;
@@ -44,7 +49,7 @@ export function ConfirmPanel({
           onClick={onConfirm}
           className="rounded-full bg-red-600 px-4 py-1 text-white disabled:opacity-50"
         >
-          {pending ? "Deleting..." : "Delete"}
+          {pending ? pendingLabel : confirmLabel}
         </button>
       </div>
       {error && (

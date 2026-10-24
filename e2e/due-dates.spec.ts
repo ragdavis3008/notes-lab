@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { removeTestData } from './helpers/db-cleanup';
 
 // Unique per run, so tests never touch notes that belong to someone else.
 const runId = Date.now().toString(36);
@@ -37,24 +38,10 @@ function chip(page: Page, name: string) {
   return page.locator('a, button').filter({ hasText: new RegExp(`^${name}\\b`) }).first();
 }
 
-async function deleteFromList(page: Page, title: string) {
-  await page.getByRole('button', { name: `Delete note ${title}` }).click();
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
-  await expect(page.getByRole('alertdialog')).toHaveCount(0);
-}
-
-// Removes whatever is left of the notes this run created, even after a failure.
-test.afterEach(async ({ page }) => {
-  await page.goto('/notes');
-  // The list streams in after the page loads, so wait for its heading first.
-  await expect(page.getByRole('heading', { level: 1, name: 'All notes' })).toBeVisible();
-  for (const title of created) {
-    const button = page.getByRole('button', { name: `Delete note ${title}` });
-    if ((await button.count()) > 0) {
-      await deleteFromList(page, title);
-      await expect(button).toHaveCount(0);
-    }
-  }
+// Deleting in the app only moves a note to the Deleted tab, so the notes this run
+// created are removed permanently in the database, even after a failure.
+test.afterEach(async () => {
+  await removeTestData({ noteTitles: created });
   created.length = 0;
 });
 

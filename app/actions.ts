@@ -9,17 +9,19 @@ import {
   createNote,
   createTag,
   deleteCollection,
-  deleteNote,
+  deleteNotePermanently,
   deleteTag,
   DuplicateCollectionError,
   DuplicateTagError,
   NoteNotFoundError,
   renameCollection,
   renameTag,
+  restoreNote,
   setNoteCompleted,
   setNotePinned,
   setNoteTags,
   setTagColor,
+  softDeleteNote,
   TagNotFoundError,
   updateNote,
 } from "@/lib/db";
@@ -113,7 +115,7 @@ export async function createNoteAction(
     // would fix the error, press Create again and end up with two notes.
     if (noteId !== undefined) {
       try {
-        await deleteNote(noteId);
+        await deleteNotePermanently(noteId);
       } catch (undoError) {
         console.error("createNoteAction could not undo the note:", undoError);
       }
@@ -356,6 +358,7 @@ export async function deleteTagAction(id: number): Promise<DeleteTagState> {
   revalidatePath("/", "layout");
 }
 
+// Moves the note to Deleted; it is not removed (the Cron job does that after 30 days).
 // The note page leaves for the list after a delete. The list passes
 // redirectToList = false, so the current filters and search stay in the URL.
 export async function deleteNoteAction(
@@ -363,12 +366,33 @@ export async function deleteNoteAction(
   redirectToList = true,
 ): Promise<DeleteState> {
   await requireUser();
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(id)) return { error: "Could not delete the note. Please try again." };
   try {
-    await deleteNote(id);
+    await softDeleteNote(id);
   } catch (e) {
     console.error("deleteNoteAction failed:", e);
     return { error: errorMessage(e, "Could not delete the note. Please try again.") };
   }
   revalidatePath("/", "layout");
   if (redirectToList) redirect("/notes");
+}
+
+export type RestoreState = { error: string } | undefined;
+
+// Puts a deleted note back with its collection, tags, pin and completed state.
+export async function restoreNoteAction(noteId: number): Promise<RestoreState> {
+  await requireUser();
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(noteId)) {
+    return { error: "Could not restore the note. Please try again." };
+  }
+
+  try {
+    await restoreNote(noteId);
+  } catch (e) {
+    console.error("restoreNoteAction failed:", e);
+    return { error: errorMessage(e, "Could not restore the note. Please try again.") };
+  }
+  revalidatePath("/", "layout");
 }

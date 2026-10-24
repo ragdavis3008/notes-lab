@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { removeTestData } from './helpers/db-cleanup';
 
 // Unique per run, so tests never touch notes or tags that belong to someone else.
 // Tag names are saved in lowercase, and the base-36 run id already is.
@@ -56,25 +57,14 @@ async function createNoteWithTag(page: Page, title: string, tagName: string) {
   await expect(page).toHaveURL(/\/notes$/);
 }
 
-async function deleteNoteFromList(page: Page, title: string) {
-  await page.getByRole('button', { name: `Delete note ${title}` }).click();
-  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
-  await expect(page.getByRole('alertdialog')).toHaveCount(0);
-}
-
 // Removes whatever is left of what this run created, even after a failure: its
-// notes first, then every tag whose name starts with the e2e prefix (this also
-// clears tags left behind by an earlier failed run).
+// notes first (permanently, in the database, because deleting in the app only moves
+// a note to the Deleted tab), then every tag whose name starts with the e2e prefix
+// (this also clears tags left behind by an earlier failed run).
 test.afterEach(async ({ page }) => {
-  await openAllNotes(page);
-  for (const title of created) {
-    const button = page.getByRole('button', { name: `Delete note ${title}` });
-    if ((await button.count()) > 0) {
-      await deleteNoteFromList(page, title);
-      await expect(button).toHaveCount(0);
-    }
-  }
+  await removeTestData({ noteTitles: created });
   created.length = 0;
+  await openAllNotes(page);
 
   const leftovers = sidebar(page).getByRole('button', {
     name: new RegExp(`^Actions for tag ${TAG_PREFIX}`),

@@ -15,7 +15,8 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
   search, rename a collection (built test-first), automated tests, email and password
   authentication (Sprint 2.6, branch `feature/add-auth`), due dates with filter chips
   (built test-first, branch `due-dates`), completed notes with a Completed page
-  (built test-first, branch `completed-notes`).
+  (built test-first, branch `completed-notes`), deleted notes with a Deleted page
+  (built test-first, branch `feature/deleted-notes`).
 
 ## Tech stack
 - Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui components
@@ -48,6 +49,17 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
   Completed page: completed notes, newest completed first, each with a small grey
   "Completed 24/10/2026" date. Unchecking a note there moves it back to the main list;
   edit and delete still work.
+- Deleting a note (trash icon) moves it to Deleted after asking "Move this note to
+  Deleted? It will be removed after 30 days." Deleted notes disappear from All notes,
+  collection views, Pinned, Completed, search, the due date chips and every sidebar
+  count.
+- "Deleted" link in the sidebar under "Completed", with a count. It opens the Deleted
+  page: deleted notes, most recently deleted first, each with a small grey "Deletes in
+  12 days" (or "Deletes today" / "Deletes tomorrow") and a Restore button. Restore puts
+  the note back where it was (collection, tags, pin and completed state); if its
+  collection no longer exists it goes to Uncollected. The app has no "Delete forever"
+  or "Empty Deleted" button: a daily Supabase Cron job (`purge-deleted-notes`) removes
+  notes 30 days after they were deleted.
 - Clear empty-state messages instead of blank screens
 
 ## Pages
@@ -56,6 +68,7 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
 | `/` | Redirects to `/notes` |
 | `/notes` | All notes, with sidebar, filters and search (sign-in required) |
 | `/notes/completed` | Completed notes, newest completed first |
+| `/notes/deleted` | Deleted notes, most recently deleted first, with Restore |
 | `/notes/new` | Create a note |
 | `/notes/[id]` | View and edit one note |
 | `/auth/login`, `/auth/sign-up` and other `/auth/...` pages | Sign-in and sign-up pages from the starter; signed-out visitors to `/notes` are redirected to `/auth/login` |
