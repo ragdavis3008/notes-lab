@@ -50,6 +50,17 @@ export function formatDue(dueDate: string): string {
   return `${day}/${month}/${year}`;
 }
 
+// What a person typed in the due date field, as dd/mm/yyyy: "" means none. Returns
+// the date as YYYY-MM-DD, or undefined when the text is not a real dd/mm/yyyy date.
+export function parseDisplayDate(raw: string): string | null | undefined {
+  const value = raw.trim();
+  if (value === "") return null;
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
+  if (!match) return undefined;
+  const iso = `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
+  return isDateString(iso) ? iso : undefined;
+}
+
 // Reads ?due=. Anything unknown means "all".
 export function parseDueFilter(raw: string | string[] | undefined): DueFilter {
   const value = Array.isArray(raw) ? raw[0] : raw;

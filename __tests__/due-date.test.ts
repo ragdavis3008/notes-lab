@@ -5,6 +5,7 @@ import {
   isDateString,
   isDueWithin7Days,
   isOverdue,
+  parseDisplayDate,
   parseDueDate,
   parseDueFilter,
   todayString,
@@ -70,6 +71,38 @@ describe("formatDue", () => {
     expect(formatDue("2026-10-28")).toBe("28/10/2026");
     expect(formatDue("2026-01-05")).toBe("05/01/2026");
     expect(formatDue("2026-09-01")).toBe("01/09/2026");
+  });
+});
+
+describe("parseDisplayDate", () => {
+  it("turns dd/mm/yyyy into YYYY-MM-DD", () => {
+    expect(parseDisplayDate("28/10/2026")).toBe("2026-10-28");
+    expect(parseDisplayDate("05/01/2026")).toBe("2026-01-05");
+    expect(parseDisplayDate("29/02/2028")).toBe("2028-02-29");
+  });
+
+  it("accepts one-digit days and months and ignores surrounding spaces", () => {
+    expect(parseDisplayDate("5/1/2026")).toBe("2026-01-05");
+    expect(parseDisplayDate("  28/10/2026 ")).toBe("2026-10-28");
+  });
+
+  it("treats empty text as no date", () => {
+    expect(parseDisplayDate("")).toBeNull();
+    expect(parseDisplayDate("   ")).toBeNull();
+  });
+
+  it("returns undefined for dates that do not exist", () => {
+    expect(parseDisplayDate("31/02/2026")).toBeUndefined();
+    expect(parseDisplayDate("29/02/2026")).toBeUndefined();
+    expect(parseDisplayDate("00/10/2026")).toBeUndefined();
+    expect(parseDisplayDate("10/13/2026")).toBeUndefined();
+  });
+
+  it("returns undefined for text in another format", () => {
+    expect(parseDisplayDate("2026-10-28")).toBeUndefined();
+    expect(parseDisplayDate("28-10-2026")).toBeUndefined();
+    expect(parseDisplayDate("28/10/26")).toBeUndefined();
+    expect(parseDisplayDate("tomorrow")).toBeUndefined();
   });
 });
 

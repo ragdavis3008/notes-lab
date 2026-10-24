@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import type { FormState } from "@/app/actions";
+import { DueDateInput } from "@/components/due-date-input";
 import { TagMultiSelect } from "@/components/tag-multi-select";
 import type { Collection, Tag } from "@/lib/types";
 
@@ -75,12 +76,9 @@ export function NoteForm({
         <label htmlFor="due-date" className="text-sm font-medium">
           Due date <span className="text-foreground/50">(optional)</span>
         </label>
-        <input
+        <DueDateInput
           id="due-date"
-          name="due_date"
-          type="date"
-          defaultValue={state?.values?.dueDate ?? initialDueDate}
-          className="field"
+          initialValue={state?.values?.dueDate ?? initialDueDate}
         />
       </div>
       <TagMultiSelect tags={tags} initialSelectedIds={initialTagIds} />

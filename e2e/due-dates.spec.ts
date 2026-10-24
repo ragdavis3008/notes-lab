@@ -22,7 +22,8 @@ function dateFromToday(days: number) {
 async function createNote(page: Page, title: string, dueDate: string) {
   await page.goto('/notes/new');
   await page.getByLabel('Title').fill(title);
-  await page.getByLabel('Due date').fill(dueDate);
+  const [year, month, day] = dueDate.split('-');
+  await page.getByLabel('Due date').fill(`${day}/${month}/${year}`);
   await page.getByRole('button', { name: 'Create note' }).click();
   await expect(page).toHaveURL(/\/notes$/);
 }
