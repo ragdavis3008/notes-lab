@@ -70,18 +70,23 @@ export function NotesList({
                   href={`/notes/${note.id}`}
                   className="block p-4 pl-12 pr-28 outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
                 >
-                  {/* truncate: a long title is cut off with "…" after one line. */}
-                  <h3 className="truncate font-semibold">{note.title}</h3>
+                  {/* A long title is cut off with "…": after two lines on a phone,
+                      after one line from the sm breakpoint up. */}
+                  <h3 className="line-clamp-2 break-words font-semibold sm:line-clamp-1">
+                    {note.title}
+                  </h3>
                   {note.content && (
-                    <p className="mt-1 whitespace-pre-line break-words text-sm text-foreground/60">
+                    <p className="mt-1 line-clamp-2 whitespace-pre-line break-words text-sm text-foreground/60">
                       {preview(note.content)}
                     </p>
                   )}
-                  <div className="mt-2 flex items-center gap-2">
+                  {/* The row wraps as a whole: the dots stay together (shrink-0), and
+                      the due date and "Edited" text move to the next line if needed. */}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                     {(tagsByNote.get(note.id) ?? []).length > 0 && (
                       // relative z-10 lifts the dots above the stretched link layer,
                       // so hovering one shows the tag name.
-                      <ul className="relative z-10 flex flex-wrap gap-1.5">
+                      <ul className="relative z-10 flex max-w-full shrink-0 flex-wrap gap-1.5">
                         {tagsByNote.get(note.id)!.map((tag) => (
                           <li key={tag.id}>
                             <TagDot color={tag.color} name={tag.name} />

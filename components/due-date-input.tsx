@@ -68,6 +68,7 @@ export function DueDateInput({ id, initialValue = "" }: Props) {
         </button>
         <input
           ref={pickerRef}
+          id={`${id}-picker`}
           type="date"
           tabIndex={-1}
           aria-hidden="true"

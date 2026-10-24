@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { type ReactNode, Suspense } from "react";
+import { CollapsibleGroup } from "@/components/collapsible-group";
 import { CollectionMenu } from "@/components/collection-menu";
 import { NewCollectionForm } from "@/components/new-collection-form";
 import { NewTagForm } from "@/components/new-tag-form";
@@ -96,38 +97,27 @@ function Group({
   notes: Note[];
   tagsByNote: Map<number, Tag[]>;
   empty: string;
-  // Control shown beside the label. It sits outside the <summary>, so using
-  // it never toggles the group.
+  // Control shown beside the label (the ⋯ menu). It is not part of the toggle, so
+  // using it never opens or closes the group.
   action?: ReactNode;
 }) {
   return (
-    <div className="relative">
-      <details open={open} className="group">
-        {/* pr-9 keeps the label clear of the ⋯ button, which is as tall as
-            this row. See components/collection-menu.tsx. */}
-        <summary
-          className={`flex cursor-pointer list-none items-center gap-1 ${action ? "pr-9" : ""}`}
+    <CollapsibleGroup
+      label={label}
+      open={open}
+      action={action}
+      header={
+        <Link
+          href={href}
+          className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${selected ? activeGroupLink : ""}`}
         >
-          <span
-            aria-hidden
-            className="w-4 text-center text-primary/70 transition-transform group-open:rotate-90"
-          >
-            ›
-          </span>
-          <Link
-            href={href}
-            className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${selected ? activeGroupLink : ""}`}
-          >
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-            <span className="shrink-0 text-xs text-foreground/50">{count}</span>
-          </Link>
-        </summary>
-        <div className="ml-4">
-          <NoteLinks notes={notes} tagsByNote={tagsByNote} empty={empty} />
-        </div>
-      </details>
-      {action}
-    </div>
+          <span className="min-w-0 flex-1 truncate">{label}</span>
+          <span className="shrink-0 text-xs text-foreground/50">{count}</span>
+        </Link>
+      }
+    >
+      <NoteLinks notes={notes} tagsByNote={tagsByNote} empty={empty} />
+    </CollapsibleGroup>
   );
 }
 

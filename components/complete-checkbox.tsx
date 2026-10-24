@@ -31,6 +31,7 @@ export function CompleteCheckbox({ noteId, noteTitle, completed, onError }: Prop
   return (
     <span className="relative flex h-5 w-5">
       <input
+        id={`complete-note-${noteId}`}
         type="checkbox"
         checked={shownCompleted}
         onChange={toggle}
