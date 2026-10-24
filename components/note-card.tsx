@@ -4,6 +4,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { deleteNoteAction } from "@/app/actions";
+import { CompleteCheckbox } from "@/components/complete-checkbox";
 import { ConfirmPanel } from "@/components/confirm-panel";
 import { PinButton } from "@/components/pin-button";
 
@@ -11,6 +12,7 @@ type Props = {
   noteId: number;
   noteTitle: string;
   pinned: boolean;
+  completed: boolean;
   // The card's link. It should stretch over the whole card (see app/page.tsx).
   children: ReactNode;
 };
@@ -19,7 +21,7 @@ const iconButton =
   "flex items-center rounded-full p-1.5 text-foreground/40 hover:bg-primary/10 hover:text-primary disabled:opacity-50";
 
 // One list item: the card, plus the pin/delete error shown below it in normal flow.
-export function NoteCard({ noteId, noteTitle, pinned, children }: Props) {
+export function NoteCard({ noteId, noteTitle, pinned, completed, children }: Props) {
   const [error, setError] = useState<string>();
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -40,6 +42,16 @@ export function NoteCard({ noteId, noteTitle, pinned, children }: Props) {
     // One row of the list panel in app/notes/page.tsx (the panel draws the dividers).
     <li className="flex flex-col">
       <div className="group relative hover:bg-foreground/5">
+        {/* z-10 keeps the checkbox above the link stretched over the card. The
+            link's pl-12 keeps the text clear of it. */}
+        <div className="absolute left-4 top-[1.125rem] z-10">
+          <CompleteCheckbox
+            noteId={noteId}
+            noteTitle={noteTitle}
+            completed={completed}
+            onError={setError}
+          />
+        </div>
         {/* z-10 keeps the buttons above the link stretched over the card. On a
             device that can hover, edit and delete appear when the card is hovered
             or has keyboard focus; on a phone they are always visible. */}

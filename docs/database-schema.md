@@ -3,7 +3,7 @@
 Source of truth for the Supabase tables. Tables are created and changed in the
 Supabase dashboard only. Do not create, alter or drop tables from code.
 
-Last checked against the dashboard: 2026-10-23 (added notes.due_date)
+Last checked against the dashboard: 2026-10-24 (added notes.completed_at)
 
 ## Relationships in plain English
 - A note can belong to one collection. A collection can contain many notes.
@@ -34,6 +34,7 @@ Last checked against the dashboard: 2026-10-23 (added notes.due_date)
 | collection_id | uuid | — | no | foreign key → collections.id, on delete SET NULL |
 | pinned | bool | false | yes | pinned notes stay at the top of their list |
 | due_date | date | — | no | optional due date, date only (YYYY-MM-DD), no time or time zone |
+| completed_at | timestamptz | — | no | when the note was marked completed; null means not completed |
 | search_vector | tsvector | generated | — | generated from title (weight A) and content (weight B), English config; GIN index notes_search_vector_idx. Read-only: never insert or update it |
 
 ### tags
@@ -71,6 +72,12 @@ Primary key: (note_id, tag_id). There is no separate id column.
   when its due date is before today, and due soon when it is today up to 7 days from
   today (both ends included). Today is the server's local date. Changing the due date
   counts as an edit, so it sets `updated_at` like a title or content change.
+- Completed notes: a note is completed when `notes.completed_at` is not null. Completing
+  sets it to the current time; unchecking sets it back to null. Like pinning, this does
+  not change `updated_at`. Completed notes are left out of All notes, collection views,
+  the pinned group, the due date chips and counts, and the sidebar counts for
+  collections and tags. They are listed only on the Completed page, newest completed
+  first. Editing or deleting a completed note works as for any other note.
 - Tag colours come from the fixed palette above. New tags start as gray. The app maps
   each colour name to its own Tailwind classes; the database stores only the name.
 - Search uses full-text search on notes.search_vector with .textSearch(), with prefix

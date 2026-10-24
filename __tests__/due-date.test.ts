@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   formatDue,
+  formatTimestamp,
   isDateString,
   isDueWithin7Days,
   isOverdue,
@@ -71,6 +72,14 @@ describe("formatDue", () => {
     expect(formatDue("2026-10-28")).toBe("28/10/2026");
     expect(formatDue("2026-01-05")).toBe("05/01/2026");
     expect(formatDue("2026-09-01")).toBe("01/09/2026");
+  });
+});
+
+describe("formatTimestamp", () => {
+  it("writes the local date of a timestamp as dd/mm/yyyy", () => {
+    // Midday, so every time zone agrees on the date.
+    expect(formatTimestamp("2026-10-24T12:00:00Z")).toBe("24/10/2026");
+    expect(formatTimestamp("2026-01-05T12:00:00Z")).toBe("05/01/2026");
   });
 });
 
