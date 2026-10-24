@@ -50,6 +50,11 @@ export function formatDue(dueDate: string): string {
   return `${day}/${month}/${year}`;
 }
 
+// A timestamp (such as notes.completed_at) as dd/mm/yyyy, in local time.
+export function formatTimestamp(timestamp: string): string {
+  return formatDue(toDateString(new Date(timestamp)));
+}
+
 // What a person typed in the due date field, as dd/mm/yyyy: "" means none. Returns
 // the date as YYYY-MM-DD, or undefined when the text is not a real dd/mm/yyyy date.
 export function parseDisplayDate(raw: string): string | null | undefined {

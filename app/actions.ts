@@ -13,6 +13,7 @@ import {
   DuplicateCollectionError,
   NoteNotFoundError,
   renameCollection,
+  setNoteCompleted,
   setNotePinned,
   setNoteTags,
   setTagColor,
@@ -259,6 +260,27 @@ export async function setNotePinnedAction(
   } catch (e) {
     console.error("setNotePinnedAction failed:", e);
     return { error: errorMessage(e, "Could not change the pin. Please try again.") };
+  }
+  revalidatePath("/", "layout");
+}
+
+export type CompleteState = { error: string } | undefined;
+
+export async function setNoteCompletedAction(
+  noteId: number,
+  completed: boolean,
+): Promise<CompleteState> {
+  await requireUser();
+  // Server actions are public endpoints, so check what the client sent.
+  if (!Number.isSafeInteger(noteId) || typeof completed !== "boolean") {
+    return { error: "Could not change the note. Please try again." };
+  }
+
+  try {
+    await setNoteCompleted(noteId, completed);
+  } catch (e) {
+    console.error("setNoteCompletedAction failed:", e);
+    return { error: errorMessage(e, "Could not change the note. Please try again.") };
   }
   revalidatePath("/", "layout");
 }

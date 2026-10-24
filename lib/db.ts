@@ -21,7 +21,7 @@ export class TagNotFoundError extends Error {
 // search_vector column, which the app never uses.
 // Must be updated whenever a column is added to the Note type.
 const NOTE_COLUMNS =
-  "id, created_at, title, content, updated_at, collection_id, pinned, due_date";
+  "id, created_at, title, content, updated_at, collection_id, pinned, due_date, completed_at";
 
 // Adds the full-text search filter to a notes query. Empty or missing `search`
 // means no search: the query is returned unchanged. Returns null when the text
@@ -41,11 +41,16 @@ function applySearch<
   return query.textSearch("search_vector", tsquery, { config: "english" });
 }
 
+// The notes lists below leave out completed notes (completed_at is not null); they
+// only appear in listCompletedNotes.
 // `search` is trimmed text; empty or missing means no search. Text with no
 // searchable words matches no notes.
 export async function listNotes(search?: string): Promise<Note[]> {
   const supabase = await createClient();
-  const query = applySearch(supabase.from("notes").select(NOTE_COLUMNS), search);
+  const query = applySearch(
+    supabase.from("notes").select(NOTE_COLUMNS).is("completed_at", null),
+    search,
+  );
   if (query === null) return [];
 
   const { data, error } = await query
@@ -205,7 +210,8 @@ export async function listNotesByCollection(
     supabase
       .from("notes")
       .select(NOTE_COLUMNS)
-      .eq("collection_id", collectionId),
+      .eq("collection_id", collectionId)
+      .is("completed_at", null),
     search,
   );
   if (query === null) return [];
@@ -223,7 +229,11 @@ export async function listNotesByCollection(
 export async function listUncollectedNotes(search?: string): Promise<Note[]> {
   const supabase = await createClient();
   const query = applySearch(
-    supabase.from("notes").select(NOTE_COLUMNS).is("collection_id", null),
+    supabase
+      .from("notes")
+      .select(NOTE_COLUMNS)
+      .is("collection_id", null)
+      .is("completed_at", null),
     search,
   );
   if (query === null) return [];
@@ -246,6 +256,47 @@ export async function setNotePinned(
   const { data, error } = await supabase
     .from("notes")
     .update({ pinned })
+    .eq("id", id)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) throw new NoteNotFoundError();
+}
+
+// Completed notes, the most recently completed first.
+export async function listCompletedNotes(): Promise<Note[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .select(NOTE_COLUMNS)
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function countCompletedNotes(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("notes")
+    .select("id", { count: "exact", head: true })
+    .not("completed_at", "is", null);
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+// Completing is not an edit of the note, so updated_at is deliberately left alone
+// (like pinning). Unchecking clears completed_at.
+export async function setNoteCompleted(
+  id: number,
+  completed: boolean,
+): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .update({ completed_at: completed ? new Date().toISOString() : null })
     .eq("id", id)
     .select("id");
 

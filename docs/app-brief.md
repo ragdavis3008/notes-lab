@@ -1,6 +1,6 @@
 # App brief: Notes App
 
-Last updated: 2026-10-15
+Last updated: 2026-10-24
 
 ## What it is
 A personal notes app. You write notes, group them into collections, label them with
@@ -14,7 +14,8 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
 - Done: notes, collections, tags, search, pinned notes, colour-coded tags, full-text
   search, rename a collection (built test-first), automated tests, email and password
   authentication (Sprint 2.6, branch `feature/add-auth`), due dates with filter chips
-  (built test-first, branch `due-dates`).
+  (built test-first, branch `due-dates`), completed notes with a Completed page
+  (built test-first, branch `completed-notes`).
 
 ## Tech stack
 - Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui components
@@ -33,12 +34,20 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
 - Search by title and content (full-text: whole words and word beginnings)
 - Collection, tag and search filters combine and live in the URL, so a filtered view
   survives a reload
-- Optional due date on a note (date only, set with the browser's date picker). Cards
-  show "Due 28 Oct", in red when overdue.
+- Optional due date on a note (date only). The field always reads and accepts
+  dd/mm/yyyy whatever the browser's language, with a calendar button that opens the
+  browser's date picker. Cards show "Due 28/10/2026", in red when overdue.
 - Due date chips above the search bar: "Overdue", "Due in 7 days" and "All", each with
   a count. They narrow the current collection, tag and search view and live in the
   URL (`?due=overdue` or `?due=week`).
 - Pinned notes always appear at the top of every list
+- Mark a note completed with the round checkbox left of its title (saves straight
+  away). Completed notes disappear from All notes, collection views, the pinned group,
+  the due date chips and the sidebar counts for collections and tags.
+- "Completed" link in the sidebar under "All notes", with a count. It opens the
+  Completed page: completed notes, newest completed first, each with a small grey
+  "Completed 24/10/2026" date. Unchecking a note there moves it back to the main list;
+  edit and delete still work.
 - Clear empty-state messages instead of blank screens
 
 ## Pages
@@ -46,6 +55,7 @@ Search"), in the `notes-lab` project from the database lessons. It runs locally 
 | --- | --- |
 | `/` | Redirects to `/notes` |
 | `/notes` | All notes, with sidebar, filters and search (sign-in required) |
+| `/notes/completed` | Completed notes, newest completed first |
 | `/notes/new` | Create a note |
 | `/notes/[id]` | View and edit one note |
 | `/auth/login`, `/auth/sign-up` and other `/auth/...` pages | Sign-in and sign-up pages from the starter; signed-out visitors to `/notes` are redirected to `/auth/login` |

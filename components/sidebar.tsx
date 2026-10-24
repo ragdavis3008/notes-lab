@@ -7,11 +7,17 @@ import { NewTagForm } from "@/components/new-tag-form";
 import { TagColorPicker } from "@/components/tag-color-picker";
 import { TagDot } from "@/components/tag-pill";
 import { requireUser } from "@/lib/auth";
-import { listCollections, listNotes, listTags, listTagsByNoteIds } from "@/lib/db";
+import {
+  countCompletedNotes,
+  listCollections,
+  listNotes,
+  listTags,
+  listTagsByNoteIds,
+} from "@/lib/db";
 import { filterHref } from "@/lib/filter-url";
 import type { Collection, Note, Tag } from "@/lib/types";
 
-export type SidebarSelection = "all" | "uncollected" | (string & {});
+export type SidebarSelection = "all" | "uncollected" | "completed" | (string & {});
 
 // Promises, because reading searchParams/params has to happen behind Suspense.
 type Props = {
@@ -212,6 +218,8 @@ function TagList({
   if (tags.length === 0) {
     return <p className="px-3 py-1 text-foreground/60">No tags yet</p>;
   }
+  // The Completed page has no tag filter, so its tag links open the main list.
+  const view = selected === "completed" ? "all" : selected;
   return (
     <>
       <p className="px-3 py-1 text-xs text-foreground/60">
@@ -228,7 +236,7 @@ function TagList({
               {/* The colour picker is the tag's one dot: click it to change the colour. */}
               <TagColorPicker tagId={tag.id} tagName={tag.name} color={tag.color} />
               <Link
-                href={filterHref(selected, next, search)}
+                href={filterHref(view, next, search)}
                 aria-current={isSelected ? "true" : undefined}
                 className={`${linkBase} flex min-w-0 flex-1 items-center gap-2 ${isSelected ? activeLink : ""}`}
               >
@@ -246,7 +254,7 @@ function TagList({
       </ul>
       {tagIds.length > 0 && (
         <Link
-          href={filterHref(selected, [], search)}
+          href={filterHref(view, [], search)}
           className={`${linkBase} text-primary hover:underline`}
         >
           Clear tag filter
@@ -276,13 +284,17 @@ async function Nav({
   let collections: Collection[] = [];
   let notes: Note[] = [];
   let tags: Tag[] = [];
+  let completedCount = 0;
   let tagsByNote = new Map<number, Tag[]>();
   let loadError: string | undefined;
   try {
-    [collections, notes, tags] = await Promise.all([
+    // listNotes() leaves out completed notes, so the collection and tag counts
+    // below only count notes that are not completed.
+    [collections, notes, tags, completedCount] = await Promise.all([
       listCollections(),
       listNotes(),
       listTags(),
+      countCompletedNotes(),
     ]);
     tagsByNote = await listTagsByNoteIds(notes.map((n) => n.id));
   } catch (e) {
@@ -316,6 +328,13 @@ async function Nav({
         className={`${linkBase} ${selected === "all" ? activeLink : ""}`}
       >
         All notes
+      </Link>
+      <Link
+        href="/notes/completed"
+        className={`${linkBase} flex items-center gap-2 ${selected === "completed" ? activeLink : ""}`}
+      >
+        <span className="min-w-0 flex-1 truncate">Completed</span>
+        <span className="shrink-0 text-xs text-foreground/50">{completedCount}</span>
       </Link>
       <p className={headingClass}>Collections</p>
       <NewCollectionForm />

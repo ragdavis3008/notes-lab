@@ -14,11 +14,9 @@ import {
   listTagsByNoteIds,
   listUncollectedNotes,
 } from "@/lib/db";
-import { NoteCard } from "@/components/note-card";
+import { NotesList } from "@/components/notes-list";
 import { SearchBox } from "@/components/search-box";
-import { TagDot } from "@/components/tag-pill";
 import {
-  formatDue,
   isDueWithin7Days,
   isOverdue,
   parseDueFilter,
@@ -26,11 +24,8 @@ import {
   type DueFilter,
 } from "@/lib/due-date";
 import { filterHref, normalizeSearch, parseTagIds } from "@/lib/filter-url";
-import { timeAgo } from "@/lib/time-ago";
 import type { Note, Tag } from "@/lib/types";
 import { isUuid } from "@/lib/uuid";
-
-const PREVIEW_LENGTH = 120;
 
 type Params = {
   collection?: string | string[];
@@ -43,13 +38,6 @@ type SearchParams = Promise<Params>;
 function readCollection(params: Params) {
   const raw = params.collection;
   return Array.isArray(raw) ? raw[0] : raw;
-}
-
-function preview(content: string | null) {
-  if (!content) return "";
-  return content.length > PREVIEW_LENGTH
-    ? content.slice(0, PREVIEW_LENGTH).trimEnd() + "…"
-    : content;
 }
 
 function BackToAll() {
@@ -249,100 +237,6 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
         today={today}
       />
     </>
-  );
-}
-
-function NotesList({
-  notes,
-  tagsByNote,
-  emptyMessage,
-  today,
-}: {
-  notes: Note[];
-  tagsByNote: Map<number, Tag[]>;
-  emptyMessage: string;
-  today: string;
-}) {
-  if (notes.length === 0) {
-    return (
-      <p className="break-words rounded-2xl bg-card p-8 text-center text-foreground/70 shadow-sm">
-        {emptyMessage}
-      </p>
-    );
-  }
-
-  // The list is already sorted pinned-first, so the two groups keep their order.
-  const pinned = notes.filter((n) => n.pinned);
-  const others = notes.filter((n) => !n.pinned);
-  // "Notes" is only a heading when it needs to tell the groups apart.
-  const groups = [
-    { label: "Pinned", items: pinned },
-    { label: pinned.length > 0 ? "Notes" : "", items: others },
-  ].filter((g) => g.items.length > 0);
-
-  return (
-    <div className="overflow-hidden rounded-2xl bg-card shadow-sm">
-      {groups.map((group, i) => (
-        <section key={group.label} className={i > 0 ? "border-t border-border" : ""}>
-          {group.label && (
-            <h2 className="px-4 pb-1 pt-3 text-sm font-bold">{group.label}</h2>
-          )}
-          <ul className="divide-y divide-border">
-            {group.items.map((note) => (
-              <NoteCard
-                key={note.id}
-                noteId={note.id}
-                noteTitle={note.title}
-                pinned={note.pinned}
-              >
-                {/* The pin, edit and delete buttons are siblings of the link: a button inside a link is invalid.
-                    The ::after layer stretches the link over the whole row and draws the focus ring.
-                    pr-28 keeps the text clear of those three buttons. */}
-                <Link
-                  href={`/notes/${note.id}`}
-                  className="block p-4 pr-28 outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
-                >
-                  {/* truncate: a long title is cut off with "…" after one line. */}
-                  <h3 className="truncate font-semibold">{note.title}</h3>
-                  {note.content && (
-                    <p className="mt-1 whitespace-pre-line break-words text-sm text-foreground/60">
-                      {preview(note.content)}
-                    </p>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    {(tagsByNote.get(note.id) ?? []).length > 0 && (
-                      // relative z-10 lifts the dots above the stretched link layer,
-                      // so hovering one shows the tag name.
-                      <ul className="relative z-10 flex flex-wrap gap-1.5">
-                        {tagsByNote.get(note.id)!.map((tag) => (
-                          <li key={tag.id}>
-                            <TagDot color={tag.color} name={tag.name} />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {note.due_date && (
-                      <span
-                        className={
-                          isOverdue(note.due_date, today)
-                            ? "shrink-0 text-xs font-medium text-red-600"
-                            : "shrink-0 text-xs text-foreground/70"
-                        }
-                      >
-                        Due {formatDue(note.due_date)}
-                      </span>
-                    )}
-                    <span className="ml-auto shrink-0 text-xs text-foreground/50">
-                      Edited {timeAgo(note.updated_at ?? note.created_at)}
-                    </span>
-                  </div>
-                </Link>
-              </NoteCard>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </div>
   );
 }
 
